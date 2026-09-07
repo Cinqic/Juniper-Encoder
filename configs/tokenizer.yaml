@@ -1,0 +1,1 @@
+{"algorithm":"raw-utf8-byte-bpe","merge_count":16121,"vocab_size":16384,"implementation_version":"raw-byte-bpe-v1","training_glob":"data/tokenizer-train/**","require_full_vocabulary":true,"tie_break":"numeric-left-right","overlap_rule":"left-to-right-non-overlapping","normalization":"none","pretokenization":"none"}

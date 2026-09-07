@@ -1,0 +1,1 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","required":["error","message"],"properties":{"error":{"enum":["INVALID_INPUT","INPUT_TOO_LONG","INVALID_REGISTRY","INDEX_MISMATCH","NUMERICAL_ERROR"]},"message":{"type":"string"},"details":{"type":"object"}}}

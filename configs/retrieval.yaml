@@ -1,0 +1,1 @@
+{"objective":"retrieval","retrieval_dim":256,"temperature":0.05,"max_negatives":7,"downstream_passes":3,"effective_query_groups":32,"backbone_learning_rate":0.00002,"head_learning_rate":0.0001}

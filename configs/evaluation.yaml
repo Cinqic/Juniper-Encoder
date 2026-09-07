@@ -1,0 +1,1 @@
+{"classes":["CALL","NO_CALL","CLARIFY"],"retrieval_production_k":8,"retrieval_diagnostic_k":10,"ece_bins":15,"bootstrap_unit":"request-capability-family","critical_slices":["agent","tool","skill","CALL","NO_CALL","CLARIFY","held-out-capability","overlap","missing-input","contextual-ambiguity","unsupported","adversarial"],"sealed_test_required":true}

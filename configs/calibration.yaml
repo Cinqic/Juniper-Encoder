@@ -1,0 +1,1 @@
+{"temperature_interval":[0.05,20.0],"threshold_search":"observed-score-grid-with-finite-endpoints","temperature_subset":"calibration-temperature","threshold_subset":"calibration-thresholds","initial_temperature":1.0}

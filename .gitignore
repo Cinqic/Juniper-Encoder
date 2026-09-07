@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+data/*
+artifacts/*
+!artifacts/README.md
+*.safetensors
+*.pt
+*.pth
+*.onnx
+*.npz

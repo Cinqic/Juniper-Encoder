@@ -1,0 +1,1 @@
+{"objective":"reranker","loss":"listwise_cross_entropy","max_candidates":8,"downstream_passes":3,"backbone_learning_rate":0.00002,"head_learning_rate":0.0001}

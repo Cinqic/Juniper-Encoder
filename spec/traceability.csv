@@ -1,0 +1,21 @@
+requirement_id,proposal_section,exact_text,implementation_symbol,config_field,test_id,expected_result,evidence_path_hash,status
+PB-02-001,2,"Repository uses the prescribed canonical structure",src/juniper_encoder/cli.py,repository.layout,tests.contract.test_layout,required paths exist,,IMPLEMENTED
+PB-03-001,3,"Locked install and preflight are verified rather than assumed",scripts/bootstrap.sh,environment.lock,tests.contract.test_preflight,missing runtime is blocked,,IMPLEMENTED
+PB-04-001,4,"Machine-readable configuration locks the frozen architecture",src/juniper_encoder/model.py,model,tests.numerics.test_model_contract,exact config accepted,,IMPLEMENTED
+PB-04-002,4,"Compute parameter counts from actual named tensors",src/juniper_encoder/model.py,model,tests.contract.test_parameter_counts,exact counts or environment block,,IMPLEMENTED
+PB-05-001,5,"Raw UTF-8 byte BPE uses seven structural IDs",src/juniper_encoder/tokenizer.py,tokenizer,tests.tokenizer.test_bytes,bytes round-trip without structural IDs,,IMPLEMENTED
+PB-05-002,5,"Equal-frequency merges use numeric pair ordering",src/juniper_encoder/tokenizer.py,tokenizer.tie_break,tests.tokenizer.test_determinism,repeated build identity,,IMPLEMENTED
+PB-06-001,6,"Registry records contain exactly seven ordered semantic fields",src/juniper_encoder/formatting.py,registry,tests.routing.test_registry,invalid shape rejected,,IMPLEMENTED
+PB-06-002,6,"Exact search tie breaks by ascending ASCII capability ID",src/juniper_encoder/registry.py,routing,tests.routing.test_ties,stable order,,IMPLEMENTED
+PB-07-001,7,"Training and evaluation partitions are disjoint and hashed",src/juniper_encoder/data.py,data.splits,tests.data.test_manifest,leakage is reported,,IMPLEMENTED
+PB-08-001,8,"MLM uses actual supervised-token normalization",src/juniper_encoder/train/protocol.py,mlm,tests.training.test_protocol,protocol is explicit,,IMPLEMENTED
+PB-09-001,9,"Checkpoints are content-addressed and resumable",src/juniper_encoder/train/checkpoint.py,checkpoint,tests.training.test_checkpoint,metadata is validated,,IMPLEMENTED
+PB-10-001,10,"All tasks share one backbone and heads are distinct",src/juniper_encoder/model.py,model,tests.contract.test_parameter_counts,mode totals are distinct,,IMPLEMENTED
+PB-11-001,11,"Calibration uses disjoint subsets and positive temperature",src/juniper_encoder/calibration.py,calibration,tests.routing.test_calibration,invalid calibration rejected,,IMPLEMENTED
+PB-12-001,12,"Evaluation definitions publish denominators and slices",src/juniper_encoder/evaluation.py,evaluation,tests.integration.test_cli,metrics never hide denominator,,IMPLEMENTED
+PB-13-001,13,"INT8 gates compare matched floating references",src/juniper_encoder/quantization.py,quantization,tests.integration.test_cli,unmeasured variants block,,IMPLEMENTED
+PB-14-001,14,"Benchmark matrix preserves failed and unsupported cases",src/juniper_encoder/benchmark.py,benchmarks,tests.integration.test_cli,missing matrix is blocked,,IMPLEMENTED
+PB-15-001,15,"Candidate identity hashes exact source and payload evidence",src/juniper_encoder/artifacts.py,packaging,tests.export.test_artifacts,descriptor has content identity,,IMPLEMENTED
+PB-16-001,16,"Sol audits an exact clean-clone candidate",scripts/review-candidate.sh,reviews.sol,tests.integration.test_cli,review scope is recorded,,IMPLEMENTED
+PB-17-001,17,"Astra is a separate final audit after Sol",scripts/review-candidate.sh,reviews.astra,tests.integration.test_cli,reviewer is explicit,,IMPLEMENTED
+PB-18-001,18,"Unresolved gates remain NOT RELEASED",docs/HANDOFF.md,status,tests.integration.test_cli,no false release claim,,IMPLEMENTED

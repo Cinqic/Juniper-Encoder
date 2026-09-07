@@ -1,0 +1,1 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","required":["artifact_type","candidate_id","files"],"properties":{"artifact_type":{"type":"string"},"candidate_id":{"type":"string","pattern":"^[0-9a-f]{64}$"},"files":{"type":"object","additionalProperties":{"type":"string","pattern":"^[0-9a-f]{64}$"}}}}

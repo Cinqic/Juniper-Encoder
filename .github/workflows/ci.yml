@@ -1,0 +1,27 @@
+name: ci
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  cpu-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38
+        with:
+          python-version: '3.12.3'
+      - name: Report exact checkout
+        run: test -n "$(git rev-parse HEAD)" && git status --porcelain=v1
+      - name: Install local package
+        run: |
+          python -m pip install --require-hashes -r requirements/cpu-review.lock
+          python -m pip install --no-deps --no-build-isolation -e .
+      - name: Contract and tests
+        run: |
+          python -m juniper_encoder spec verify --contract spec/proposal_b.contract.json
+          python -m juniper_encoder routing conformance --fixtures tests/fixtures/routing
+          python -m pytest -q
