@@ -21,4 +21,12 @@ python -m juniper_encoder routing conformance --fixtures tests/fixtures/routing
 python -m pytest -q
 ```
 
-Training, calibration, export, target benchmarks, and INT8 qualification must consume immutable manifests and a selected checkpoint. Their CLI commands fail with a machine-readable blocker when those inputs are absent.
+The data fixture can be acquired and frozen with:
+
+```bash
+python -m juniper_encoder data acquire --manifest manifests/sources/approved.json --output-root data/raw
+python -m juniper_encoder data prepare --manifest data/raw/acquisition.json --output data/processed/prepared.json
+python -m juniper_encoder data freeze --config configs/splits.yaml --manifest data/processed/prepared.json --output manifests/data/frozen.json
+```
+
+`tokenizer corpus` reports the fixture, while `tokenizer train` correctly blocks because it cannot produce all 16,121 frozen merges. Training, calibration, export, target benchmarks, and INT8 qualification must consume immutable manifests and a selected checkpoint. Their CLI commands fail with a machine-readable blocker when those inputs are absent.

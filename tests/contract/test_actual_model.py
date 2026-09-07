@@ -26,6 +26,17 @@ def test_adjacent_pair_rope_uses_positive_rotation():
     assert rotated[..., 1].item() == pytest.approx(torch.sin(torch.tensor(1.0)).item())
 
 
+def test_pad_position_ids_are_zeroed():
+    from juniper_encoder.model import AdjacentPairRoPE
+
+    rope = AdjacentPairRoPE()
+    value = torch.zeros((1, 2, 1, 64), dtype=torch.float32)
+    value[..., 0] = 1.0
+    rotated = rope(value, torch.tensor([[0.0, 0.0]]))
+    assert torch.equal(rotated[..., 0], torch.ones_like(rotated[..., 0]))
+    assert torch.equal(rotated[..., 1], torch.zeros_like(rotated[..., 1]))
+
+
 def test_padding_does_not_change_pooled_embedding():
     model = DeploymentModel(seed=1729).eval()
     short = torch.tensor([[7, 8, 9, 0]], dtype=torch.long)

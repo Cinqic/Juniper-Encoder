@@ -8,7 +8,7 @@ from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 from .constants import CLASS_NAMES, CLASS_CALL, CLASS_CLARIFY, CLASS_NO_CALL
-from .errors import EncoderError, invalid_input, numerical_error
+from .errors import EncoderError, index_mismatch, invalid_input, numerical_error
 from .formatting import (
     FormattedRequest,
     RegistryRecord,
@@ -35,6 +35,8 @@ class Calibration:
         for value in (self.score_threshold, self.margin_threshold):
             if value is not None and not math.isfinite(value):
                 raise numerical_error("calibration threshold must be finite")
+        if self.calibrated and (self.score_threshold is None or self.margin_threshold is None):
+            raise numerical_error("calibrated routing requires both deployment thresholds")
 
 
 @dataclasses.dataclass(frozen=True)
@@ -64,6 +66,16 @@ def _classify(logits: Sequence[float], temperature: float) -> int:
     return min(range(3), key=lambda index: (-scaled[index], index))
 
 
+def _class_probabilities(logits: Sequence[float], temperature: float) -> tuple[float, ...]:
+    values = tuple(float(value) / temperature for value in logits)
+    maximum = max(values)
+    exponentials = tuple(math.exp(value - maximum) for value in values)
+    total = math.fsum(exponentials)
+    if not math.isfinite(total) or total <= 0:
+        raise numerical_error("classifier probability normalization failed")
+    return tuple(value / total for value in exponentials)
+
+
 def route(
     request: Mapping[str, Any],
     snapshot: RegistrySnapshot,
@@ -75,6 +87,8 @@ def route(
 ) -> RoutingResult:
     # Formatting and compatibility are performed even for an empty registry.
     formatted = format_request(request, tokenizer)
+    if tokenizer.identity() != snapshot.tokenizer_identity:
+        raise index_mismatch("active tokenizer does not match the registry snapshot", expected=snapshot.tokenizer_identity, actual=tokenizer.identity())
     index.verify_compatible(snapshot, tokenizer_identity=snapshot.tokenizer_identity, encoder_variant_identity=snapshot.encoder_variant_identity)
     calibration = calibration or Calibration()
     calibration.validate()
@@ -115,7 +129,9 @@ def route(
 
     candidates = [record for record, _ in final[:2]]
     decision_input = format_decision(formatted.serialized, candidates, tokenizer)
-    class_index = _classify(callbacks.classify(decision_input.token_ids), calibration.temperature)
+    logits = tuple(float(value) for value in callbacks.classify(decision_input.token_ids))
+    class_index = _classify(logits, calibration.temperature)
+    probabilities = _class_probabilities(logits, calibration.temperature)
     decision = CLASS_NAMES[class_index]
     capability_id = candidates[0].id if decision == "CALL" else None
     validate_decision({"decision": decision, "capability_id": capability_id}, {record.id for record in snapshot.records})
@@ -128,5 +144,16 @@ def route(
             "rerank_invocations": len(candidates) if reranked else 0,
             "neural_passes": 1 + (len(candidates) if reranked else 1),
             "temperature": calibration.temperature,
+            "probabilities_calibrated": calibration.calibrated,
+            "decision_probabilities": {name: probabilities[index] for index, name in enumerate(("CALL", "NO_CALL", "CLARIFY"))},
+            "retrieval_scores": {record.id: score for record, score in ranked},
+            "rerank_scores": {record.id: score for record, score in final} if reranked else {},
         },
     )
+
+
+def compare_routing_paths(request: Mapping[str, Any], snapshot: RegistrySnapshot, index: RegistryIndex, tokenizer: RawByteBPE, callbacks: RoutingCallbacks, *, calibration: Calibration | None = None) -> dict[str, Any]:
+    """Run paired conditional and always-rerank paths on the same snapshot."""
+    conditional = route(request, snapshot, index, tokenizer, callbacks, calibration=calibration)
+    always = route(request, snapshot, index, tokenizer, callbacks, calibration=Calibration(temperature=(calibration.temperature if calibration else 1.0), calibrated=False))
+    return {"conditional": conditional.decision_json(), "always_rerank": always.decision_json(), "same_decision": conditional.decision_json() == always.decision_json(), "conditional_metadata": conditional.metadata, "always_metadata": always.metadata}

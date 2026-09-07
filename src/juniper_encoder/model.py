@@ -129,9 +129,11 @@ if torch is not None:  # pragma: no branch
         def forward(self, x: Tensor, positions: Tensor) -> Tensor:
             # x: batch, sequence, heads, head_dim. The convention is the
             # positive rotation x0' = x0 cos - x1 sin.
+            if positions.ndim == 1:
+                positions = positions.unsqueeze(0)
             angles = positions.float().unsqueeze(-1) * self.inverse_frequency
-            cosine = angles.cos().unsqueeze(0).unsqueeze(2)
-            sine = angles.sin().unsqueeze(0).unsqueeze(2)
+            cosine = angles.cos().unsqueeze(2)
+            sine = angles.sin().unsqueeze(2)
             first = x[..., 0::2]
             second = x[..., 1::2]
             rotated_first = first * cosine - second * sine
@@ -151,8 +153,11 @@ if torch is not None:  # pragma: no branch
             self.value = nn.Linear(config.width, config.width, bias=False)
             self.output = nn.Linear(config.width, config.width, bias=False)
             self.ln_geglu = ExactLayerNorm(config.width, config.layer_norm_epsilon)
-            self.gate = nn.Linear(config.width, config.geglu_width, bias=False)
-            self.value_branch = nn.Linear(config.width, config.geglu_width, bias=False)
+            # Proposal B specifies one fused 512 -> 3072 projection with the
+            # ordered output halves [gate, value]. The fused representation has
+            # the same arithmetic count as two 512 -> 1536 matrices while
+            # preserving the required state layout.
+            self.ffn_in = nn.Linear(config.width, 2 * config.geglu_width, bias=False)
             self.down = nn.Linear(config.geglu_width, config.width, bias=False)
             self.rope = AdjacentPairRoPE(config.head_dim, config.rope_theta)
             self.config = config
@@ -183,7 +188,8 @@ if torch is not None:  # pragma: no branch
 
             residual = x
             normalized = self.ln_geglu(x)
-            geglu = F.gelu(self.gate(normalized), approximate="none") * self.value_branch(normalized)
+            gate_input, value_branch = self.ffn_in(normalized).chunk(2, dim=-1)
+            geglu = F.gelu(gate_input, approximate="none") * value_branch
             feed_forward = self.down(geglu)
             feed_forward = F.dropout(feed_forward, p=DROPOUT_P, training=training)
             return _zero_pad(residual + feed_forward, input_ids)
@@ -226,7 +232,10 @@ if torch is not None:  # pragma: no branch
             if bool((input_ids < 0).any()) or bool((input_ids >= VOCAB_SIZE).any()):
                 raise invalid_input("input token ID is outside the vocabulary")
             training = self.training if training is None else training
-            positions = torch.arange(input_ids.shape[1], device=input_ids.device, dtype=torch.float32)
+            positions = torch.arange(input_ids.shape[1], device=input_ids.device, dtype=torch.float32).unsqueeze(0).expand(input_ids.shape[0], -1)
+            # PAD position IDs are defined as zero. This also keeps padded
+            # query rows deterministic before their hidden states are masked.
+            positions = positions.masked_fill(input_ids.eq(0), 0.0)
             hidden = self.embedding(input_ids)
             hidden = F.dropout(hidden, p=DROPOUT_P, training=training)
             hidden = _zero_pad(hidden, input_ids)

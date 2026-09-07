@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+import json
 import math
 from array import array
 from pathlib import Path
@@ -55,6 +56,15 @@ class RegistrySnapshot:
 
     def save(self, path: str | Path) -> None:
         write_json(path, self.as_payload())
+
+    @classmethod
+    def load(cls, path: str | Path) -> "RegistrySnapshot":
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+        records = tuple(RegistryRecord.from_mapping(item) for item in payload.get("records", []))
+        snapshot = cls.create(records, tokenizer_identity=payload["tokenizer_identity"], encoder_variant_identity=payload["encoder_variant_identity"])
+        if snapshot.snapshot_identity != payload.get("snapshot_identity"):
+            raise invalid_registry("registry snapshot identity mismatch")
+        return snapshot
 
 @dataclasses.dataclass(frozen=True)
 class RegistryIndex:
@@ -146,3 +156,19 @@ class RegistryIndex:
 
     def save(self, path: str | Path) -> None:
         write_json(path, self.as_payload())
+
+    @classmethod
+    def load(cls, path: str | Path) -> "RegistryIndex":
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+        vectors = tuple(tuple(float(value) for value in vector) for vector in payload.get("vectors", []))
+        index = cls(payload["snapshot_identity"], payload["tokenizer_identity"], payload["encoder_variant_identity"], int(payload["dimension"]), vectors, payload["index_identity"])
+        expected = dict(payload)
+        expected.pop("index_identity", None)
+        if sha256_bytes(canonical_json_bytes(expected)) != index.index_identity:
+            raise index_mismatch("registry index identity mismatch")
+        return index
+
+
+def embedding_cache_key(record: RegistryRecord, *, tokenizer_identity: str, encoder_variant_identity: str) -> str:
+    """Stable key used by optional external caches; description changes invalidate it."""
+    return sha256_bytes(canonical_json_bytes({"capability_id": record.id, "description_hash": record.description_hash(), "tokenizer_identity": tokenizer_identity, "encoder_variant_identity": encoder_variant_identity}))

@@ -1,1 +1,1 @@
-Tokenizer source/build manifests are written here only after an approved training corpus produces the complete vocabulary.
+Tokenizer source/build manifests are written here only after an approved training corpus produces the complete vocabulary. The current first-party fixture is intentionally insufficient and has no tokenizer artifact in this directory.

@@ -17,21 +17,33 @@ class MaskingProtocol:
     mask_rate: float = 0.15
 
     def mask(self, token_ids: Sequence[int], example_id: str, epoch: int) -> tuple[list[int], list[int]]:
+        masked, positions, targets = self.mask_detailed(token_ids, example_id, epoch)
+        return masked, targets
+
+    def mask_detailed(self, token_ids: Sequence[int], example_id: str, epoch: int) -> tuple[list[int], list[int], list[int]]:
+        """Apply deterministic 80/10/10 MLM corruption and return positions.
+
+        Structural IDs and PAD are never selected. The per-example RNG makes
+        masking independent of worker scheduling and the fallback guarantees a
+        nonempty target set whenever ordinary tokens exist.
+        """
         eligible = [i for i, token_id in enumerate(token_ids) if ORDINARY_TOKEN_MIN <= token_id <= ORDINARY_TOKEN_MAX]
         rng = random.Random(f"{self.seed}:{example_id}:{epoch}")
         chosen = [i for i in eligible if rng.random() < self.mask_rate]
         if eligible and not chosen:
             chosen = [eligible[0]]
         output = list(token_ids)
+        positions: list[int] = []
         targets: list[int] = []
         for position in chosen:
+            positions.append(position)
             targets.append(token_ids[position])
             branch = rng.random()
             if branch < 0.8:
                 output[position] = 4
             elif branch < 0.9:
                 output[position] = rng.randint(ORDINARY_TOKEN_MIN, ORDINARY_TOKEN_MAX)
-        return output, targets
+        return output, positions, targets
 
 
 @dataclasses.dataclass(frozen=True)
@@ -58,6 +70,14 @@ def require_training_runtime() -> None:
         raise EncoderError("BLOCKED_ENVIRONMENT", "training requires the verified PyTorch runtime", {"dependency": "torch"}) from exc
     if not hasattr(torch, "optim"):
         raise EncoderError("BLOCKED_ENVIRONMENT", "PyTorch optimizer support is unavailable")
+
+
+def require_safetensors() -> Any:
+    try:
+        from safetensors import torch as safe_torch
+    except ImportError as exc:
+        raise EncoderError("BLOCKED_ENVIRONMENT", "safe tensor serialization is required for training checkpoints", {"dependency": "safetensors"}) from exc
+    return safe_torch
 
 
 def run_mechanical_smoke(config: dict[str, Any]) -> dict[str, Any]:

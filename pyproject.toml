@@ -14,7 +14,7 @@ authors = [{ name = "Cinqic" }]
 dependencies = []
 
 [project.optional-dependencies]
-training = ["torch"]
+training = ["torch", "safetensors"]
 
 [project.scripts]
 juniper-encoder = "juniper_encoder.cli:main"

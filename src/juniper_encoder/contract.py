@@ -13,7 +13,8 @@ from .utils import canonical_json_bytes, sha256_file, write_json
 
 
 def verify_machine_contract(path: str | Path) -> dict[str, Any]:
-    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    contract_path = Path(path)
+    payload = json.loads(contract_path.read_text(encoding="utf-8"))
     required = {
         "vocab_size": VOCAB_SIZE,
         "structural_ids": STRUCTURAL_IDS,
@@ -24,6 +25,12 @@ def verify_machine_contract(path: str | Path) -> dict[str, Any]:
             raise ValueError(f"machine contract field {key} differs from frozen values")
     config = ModelConfig(**payload["model"])
     config.validate()
+    root = contract_path.parent
+    pinned_files = {"frozen_spec_sha256": root / "PROPOSAL_B_FROZEN.md", "implementation_brief_sha256": root / "IMPLEMENTATION_REVIEW_BRIEF.md"}
+    for field, candidate in pinned_files.items():
+        if field in payload:
+            if not candidate.exists() or sha256_file(candidate) != payload[field]:
+                raise ValueError(f"machine contract field {field} does not match the pinned repository bytes")
     return {"valid": True, "contract_sha256": sha256_file(path), "fields": sorted(payload)}
 
 

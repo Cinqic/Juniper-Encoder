@@ -11,9 +11,11 @@ ROOT = Path(__file__).parents[2]
 def test_machine_contract_and_frozen_hash():
     result = verify_machine_contract(ROOT / "spec/proposal_b.contract.json")
     assert result["valid"] is True
-    assert sha256_file(ROOT / "spec/PROPOSAL_B_FROZEN.md") == "9363e892bef02d7b26856c31282bf8ca3902d1a140700e970d808057d6e77d1b"
+    assert sha256_file(ROOT / "spec/PROPOSAL_B_FROZEN.md") == "ce881075b84e36a28f673e1a41199e91cf0426baf66f788de880d86c156109b2"
+    assert sha256_file(ROOT / "spec/PROPOSAL_B_PARTIAL_FROZEN.md") == "1952c939df53f106ea5cd1808aa348393a4e26076ebf689d9826e16f5935eb18"
     assert STRUCTURAL_IDS["[PAD]"] == 0
     assert VOCAB_SIZE == 16384
+    assert result["contract_sha256"] == sha256_file(ROOT / "spec/proposal_b.contract.json")
 
 
 def test_traceability_has_unique_implemented_rows():

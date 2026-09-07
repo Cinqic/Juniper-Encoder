@@ -135,8 +135,8 @@ def _validate_request_shape(request: Mapping[str, Any]) -> tuple[list[HistoryEnt
     for item in history:
         if not isinstance(item, Mapping) or tuple(item.keys()) != ("role", "content"):
             raise invalid_input("each history entry must contain role and content in frozen order")
-        if not isinstance(item["role"], str) or not item["role"]:
-            raise invalid_input("history role must be a nonempty string")
+        if item["role"] not in {"user", "assistant", "tool"}:
+            raise invalid_input("history role must be one of user, assistant, or tool")
         if not isinstance(item["content"], str):
             raise invalid_input("history content must be a string")
         entries.append(HistoryEntry(item["role"], item["content"]))
@@ -225,22 +225,26 @@ def format_decision(
     if not 1 <= len(candidates) <= 2:
         raise invalid_input("decision classifier accepts one or two candidates")
     try:
-        query = query_serialized.decode("utf-8", "strict")
-    except UnicodeDecodeError as exc:
-        raise invalid_input("request bytes are not valid UTF-8", reason=str(exc)) from exc
-    query_tokens = tokenizer.encode(query)
-    record_tokens = [tokenizer.encode(record.serialized().decode("utf-8")) for record in candidates]
-    content_count = len(query_tokens) + sum(len(tokens) for tokens in record_tokens)
-    if content_count > MAX_ORDINARY_DECISION_CONTENT_TOKENS and len(candidates) == 2:
-        record_tokens = record_tokens[:1]
-        candidates = candidates[:1]
-        content_count = len(query_tokens) + len(record_tokens[0])
-    if content_count > MAX_ORDINARY_DECISION_CONTENT_TOKENS:
-        raise input_too_long("decision content exceeds the ordinary-token budget", content_tokens=content_count)
-    token_ids: list[int] = [_structural("[CLS]"), _structural("[QUERY]"), *query_tokens, _structural("[SEP]")]
-    for index, tokens in enumerate(record_tokens):
-        token_ids.extend((_structural("[DOCUMENT]"), *tokens, _structural("[SEP]")))
-    return DecisionInput(tuple(token_ids), tuple(record.id for record in candidates), content_count)
+        request_value = json.loads(query_serialized.decode("utf-8", "strict"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise invalid_input("request bytes are not valid UTF-8 JSON", reason=str(exc)) from exc
+    if not isinstance(request_value, dict) or tuple(request_value.keys()) != ("history", "user"):
+        raise invalid_input("decision request must be the validated compact request object")
+
+    def serialize(records: Sequence[RegistryRecord]) -> bytes:
+        return canonical_json_bytes({"request": request_value, "capabilities": [record.as_mapping() for record in records]})
+
+    selected = list(candidates)
+    serialized = serialize(selected)
+    content_tokens = tokenizer.encode(serialized.decode("utf-8"))
+    if len(content_tokens) > MAX_ORDINARY_DECISION_CONTENT_TOKENS and len(selected) == 2:
+        selected = selected[:1]
+        serialized = serialize(selected)
+        content_tokens = tokenizer.encode(serialized.decode("utf-8"))
+    if len(content_tokens) > MAX_ORDINARY_DECISION_CONTENT_TOKENS:
+        raise input_too_long("decision context exceeds the ordinary-token budget", content_tokens=len(content_tokens))
+    token_ids = (_structural("[CLS]"), _structural("[QUERY]"), *content_tokens, _structural("[SEP]"))
+    return DecisionInput(tuple(token_ids), tuple(record.id for record in selected), len(content_tokens))
 
 
 def validate_decision(decision: Mapping[str, Any], allowed_ids: set[str]) -> None:

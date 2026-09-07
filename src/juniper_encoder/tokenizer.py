@@ -209,6 +209,8 @@ class RawByteBPE:
         metadata = {
             "artifact_type": "juniper-tokenizer",
             "payload_sha256": sha256_bytes(canonical_json_bytes(payload)),
+            "tokenizer_identity": self.identity(),
+            "vocab_size": len(self._bytes_by_id) + len(STRUCTURAL_IDS),
             "source_sha": source_sha,
             "corpus_hash": corpus_hash,
             "implementation_version": self.config.implementation_version,
@@ -227,6 +229,12 @@ class RawByteBPE:
         tokenizer = cls(merges, config=config)
         if tokenizer.payload() != payload:
             raise ValueError("tokenizer payload is not canonical or does not round-trip")
+        manifest_path = Path(directory) / "manifest.json"
+        if manifest_path.exists():
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            expected = sha256_bytes(canonical_json_bytes(payload))
+            if manifest.get("payload_sha256") != expected or manifest.get("tokenizer_identity") != tokenizer.identity():
+                raise ValueError("tokenizer manifest identity does not match tokenizer payload")
         return tokenizer
 
     def compare_payload(self, other: "RawByteBPE") -> bool:

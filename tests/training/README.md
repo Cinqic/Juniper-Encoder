@@ -1,1 +1,1 @@
-Training tests requiring the verified PyTorch runtime belong here. They are blocked until that runtime and approved data lineage exist.
+Training tests requiring the verified PyTorch runtime belong here. The current suite exercises deterministic masking, frozen downstream losses, and safe checkpoint paths; production-scale training remains data-gated.

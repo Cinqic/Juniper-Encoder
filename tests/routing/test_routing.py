@@ -46,6 +46,17 @@ def test_empty_registry_validates_then_returns_no_call():
     assert result.metadata["neural_passes"] == 0
 
 
+def test_tokenizer_snapshot_mismatch_is_rejected_before_inference():
+    tokenizer = RawByteBPE.from_merges([], toy=True)
+    other_tokenizer = RawByteBPE.from_merges([(7, 7)], toy=True)
+    snapshot = RegistrySnapshot.create([], tokenizer_identity=tokenizer.identity(), encoder_variant_identity="fixture")
+    index = RegistryIndex.build(snapshot, lambda _record: [1.0] + [0.0] * 255)
+    callbacks = RoutingCallbacks(lambda _request: [1.0] * 256, lambda _tokens, _record: 0.0, lambda _tokens: [0.0, 1.0, 0.0])
+    with pytest.raises(EncoderError) as error:
+        route({"history": [], "user": "hello"}, snapshot, index, other_tokenizer, callbacks)
+    assert error.value.code == "INDEX_MISMATCH"
+
+
 def test_conditional_path_reranks_when_thresholds_do_not_pass():
     tokenizer = RawByteBPE.from_merges([], toy=True)
     records = [record("alpha"), record("beta")]

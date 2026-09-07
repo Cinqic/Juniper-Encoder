@@ -4,11 +4,11 @@ Juniper Encoder is a contract-first, encoder-only routing model for registered a
 
 ## Status
 
-`IMPLEMENTED / SMOKE_TESTED / NOT RELEASED`
+`IMPLEMENTED / TESTED / NOT RELEASED`
 
-The repository currently has no approved training sources, selected checkpoint, calibrated metadata, durable model artifacts, independent Sol approval, or Astra approval. Consequently it makes no quality, training-completion, GPU/INT8, or release claim. Those are explicit gates, not inferred from the presence of code.
+The repository contains one small, first-party, training-only fixture (32 records) and a reproducible frozen split manifest. It is intentionally insufficient for the 16,121-merge deployment tokenizer, so no production tokenizer, selected checkpoint, calibrated metadata, durable deployment export, quality qualification, independent Sol approval, or Astra approval exists. Consequently this branch makes no production quality, training-completion, GPU/INT8, or release claim.
 
-The frozen authority is [spec/PROPOSAL_B_FROZEN.md](spec/PROPOSAL_B_FROZEN.md), SHA-256 `9363e892bef02d7b26856c31282bf8ca3902d1a140700e970d808057d6e77d1b`. The machine-readable contract is [spec/proposal_b.contract.json](spec/proposal_b.contract.json).
+The frozen authority is [spec/PROPOSAL_B_FROZEN.md](spec/PROPOSAL_B_FROZEN.md), SHA-256 `ce881075b84e36a28f673e1a41199e91cf0426baf66f788de880d86c156109b2`. The machine-readable contract is [spec/proposal_b.contract.json](spec/proposal_b.contract.json).
 
 ## Quick start
 
@@ -22,6 +22,8 @@ python -m pytest -q
 ```
 
 The PyTorch/CUDA runtime is pinned in `requirements/flowbox.lock` from the official CUDA 12.8 index and has been imported on FLOWBOX. The RTX 2060 reports native BF16 unsupported; the FP16 AMP probe passes. Training and deployment still require the separate data/checkpoint gates below.
+
+The checked-in first-party fixture is documented in [manifests/sources/approved.json](manifests/sources/approved.json) and [manifests/data/frozen.json](manifests/data/frozen.json). It supports provenance, split, tokenizer, and overfit-pipeline verification only; it must not be presented as a production corpus.
 
 ## Reproduction and evidence
 

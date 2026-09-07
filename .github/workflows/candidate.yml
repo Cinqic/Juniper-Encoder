@@ -1,5 +1,7 @@
 name: candidate
 on:
+  push:
+  pull_request:
   workflow_dispatch:
     inputs:
       candidate_sha:
@@ -8,21 +10,25 @@ on:
         type: string
 permissions:
   contents: read
+  pull-requests: read
 jobs:
   exact-candidate:
     runs-on: ubuntu-latest
+    env:
+      CANDIDATE_SHA: ${{ inputs.candidate_sha || (github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha) }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 0
-          ref: ${{ inputs.candidate_sha }}
+          ref: ${{ env.CANDIDATE_SHA }}
       - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38
         with:
           python-version: '3.12.3'
       - name: Assert requested candidate SHA
         env:
-          REQUESTED_SHA: ${{ inputs.candidate_sha }}
+          REQUESTED_SHA: ${{ env.CANDIDATE_SHA }}
         run: |
+          test -n "$REQUESTED_SHA"
           test "$(git rev-parse HEAD)" = "$REQUESTED_SHA"
           test -z "$(git status --porcelain=v1)"
           git rev-parse HEAD

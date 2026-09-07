@@ -3,6 +3,8 @@ __pycache__/
 .pytest_cache/
 *.pyc
 data/*
+!data/first_party/
+!data/first_party/seed-corpus.jsonl
 artifacts/*
 !artifacts/README.md
 *.safetensors

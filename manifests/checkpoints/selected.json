@@ -1,1 +1,1 @@
-{"status":"BLOCKED_CHECKPOINT","reason":"no random-initialization training run has completed","checkpoint_identity":null}
+{"status":"BLOCKED_CHECKPOINT","reason":"the available first-party fixture cannot produce the complete deployment tokenizer or reviewed downstream labels; no production checkpoint is selected","checkpoint_identity":null}

@@ -4,4 +4,4 @@ The resolved protocol is controlled by the locked configs in `configs/locks/` an
 
 Training is from random initialization. The temporary MLM decoder is tied to the embedding only during the MLM stage and must not appear in a deployment export. Checkpoints must contain safe tensor payloads plus validated metadata for RNG, sampler, optimizer, scheduler, source/config/tokenizer/data identities, counters, and predecessor lineage.
 
-This candidate has not trained: the verified PyTorch runtime is available, but no lawful approved corpus, processed split manifest, or reviewed labels are materialized. No `TRAINED`, `EVALUATED`, or `QUALITY_QUALIFIED` label is valid.
+The repository now materializes a lawful first-party fixture and a frozen split manifest, but the fixture is not large enough to produce the required 16,121 merges and has no reviewed downstream routing labels. A separate toy-tokenizer overfit run exercised real FP16 CUDA MLM updates and safe-tensor checkpoint emission; it is an experiment, not a foundation or deployment checkpoint. No `QUALITY_QUALIFIED` label is valid.
