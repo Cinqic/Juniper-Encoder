@@ -25,3 +25,10 @@ def test_evaluation_reports_component_denominators_and_conditional_paths():
     assert result["rerank_invocation_rate"] == 0.0
     assert result["fast_path_exact_accuracy"] == 1.0
     assert result["slices"]["CALL"]["support"] == 1
+
+
+def test_evaluation_uses_materialized_calibrated_probabilities_when_present():
+    result = evaluate_predictions([
+        {"prediction": "CALL", "label": "CALL", "logits": [0.0, 0.0, 0.0], "probabilities": [0.9, 0.05, 0.05], "label_index": 0}
+    ])
+    assert result["brier"] < 0.02

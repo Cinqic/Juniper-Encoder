@@ -18,10 +18,10 @@
   },
   {
     "source_id": "cinqic-juniper-encoder-repository-v1",
-    "revision": "first-party-repository-technical-snapshot-2026-09-07-v3",
+    "revision": "first-party-repository-technical-snapshot-2026-09-07-v4",
     "url": "https://github.com/Cinqic/Juniper-Encoder/blob/work/luna-encoder-proposal-b/data/first_party/repository-corpus.jsonl",
     "local_path": "data/first_party/repository-corpus.jsonl",
-    "upstream_sha256": "1f1a2a2636efad6e97f62e5adc20f8c0a4563b1be44727c527e1606aa4a6d223",
+    "upstream_sha256": "a76a31fbf6147a1203779b4d983a736bf08075f75f1ee34440eb3fdac101d700",
     "retrieval_date": "2026-09-07",
     "rights_evidence": "First-party Cinqic-authored source and documentation snapshot; repository LICENSE and source history are retained with the snapshot.",
     "license": "Apache-2.0 for repository-owned source and documentation",
@@ -30,7 +30,7 @@
     "redistribution_status": "source snapshot is versioned in repository; derived model artifacts remain review-gated",
     "language": "en",
     "domain": "first-party technical implementation and frozen contract text",
-    "estimated_bytes": 445134,
+    "estimated_bytes": 445464,
     "generator_script_sha256": "8fe49d3cecd1ad6a36c2ace5768810c1257422dd37f6dfed63c53fdd96711be4",
     "role": "training_only",
     "exclusions": ["no personal data", "no third-party scraped text", "not a supervised routing-label source", "not used for sealed evaluation"]

@@ -163,6 +163,7 @@ def main() -> None:
             "expected_capability_id": row.get("capability_id"),
             "exact": actual == expected,
             "logits": main_logits,
+            "probabilities": [result.metadata["decision_probabilities"][name] for name in CLASS_NAMES],
             "ranking": ranking if relevant else None,
             "relevant": relevant if relevant else None,
             "relevance": {identifier: int(identifier in relevant) for identifier in ranking} if relevant else None,

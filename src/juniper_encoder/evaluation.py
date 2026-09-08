@@ -146,9 +146,9 @@ def evaluate_predictions(rows: Sequence[dict[str, object]], *, ece_bins: int = 1
         result["denominators"]["classification"] = len(classification_rows)
     probability_rows = [row for row in rows if isinstance(row.get("logits"), (list, tuple)) and isinstance(row.get("label_index"), int)]
     if probability_rows:
-        probabilities = [row["logits"] for row in probability_rows]
+        probabilities = [row["probabilities"] for row in probability_rows if "probabilities" in row]
         labels = [row["label_index"] for row in probability_rows]
-        probability_values = _softmax_rows(probabilities)
+        probability_values = [list(row["probabilities"]) for row in probability_rows] if all(isinstance(row.get("probabilities"), (list, tuple)) for row in probability_rows) else _softmax_rows([row["logits"] for row in probability_rows])
         calibration = expected_calibration_error(probability_values, labels, bins=ece_bins)
         result.update({"nll": _nll(probabilities, labels), "brier": brier_score(probability_values, labels), "ece": calibration["ece"], "ece_bins": calibration["bins"]})
         result["denominators"]["calibration"] = len(probability_rows)
