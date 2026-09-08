@@ -11,7 +11,7 @@ Frozen spec SHA-256: `ce881075b84e36a28f673e1a41199e91cf0426baf66f788de880d86c15
 
 The implementation branch contains the complete frozen spec, deterministic contract/tokenizer/routing/data/checkpoint code, a first-party routing fixture, a reproducible repository-technical tokenizer corpus, and a verified FLOWBOX CUDA runtime lock. The current worktree has also exercised a real full-vocabulary tokenizer, foundation/downstream checkpoint chain, model-driven evaluation, calibration, floating export, and portable INT8 export. Those generated weights and reports are local ignored artifacts, not an immutable candidate package.
 
-The small authored dataset fails the project quality gates, the required target benchmark matrix is not complete, and independent Sol/Astra review has not occurred. Therefore this remains a reviewable implementation handoff, not a release candidate.
+The small authored dataset fails the project quality gates. The exact target benchmark matrix is complete at 84/84 measured cases, but the INT8 gate rejects the matched export on p50/p95 latency and isolated CUDA peak memory is unavailable. Independent Sol/Astra review has not occurred. Therefore this remains a reviewable implementation handoff, not a release candidate.
 
 ## Required next action
 

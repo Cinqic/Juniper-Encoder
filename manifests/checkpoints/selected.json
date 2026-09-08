@@ -1,1 +1,1 @@
-{"status":"BLOCKED_CHECKPOINT","reason":"the available first-party fixture cannot produce the complete deployment tokenizer or reviewed downstream labels; no production checkpoint is selected","checkpoint_identity":null}
+{"status":"BLOCKED_CHECKPOINT","reason":"local provisional full-vocabulary and trained artifacts exist, but the small authored fixture fails project quality gates, INT8 latency gates fail and isolated CUDA peak memory is unavailable, and independent review has not approved a candidate; no production checkpoint is selected","checkpoint_identity":null}

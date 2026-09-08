@@ -6,7 +6,7 @@ Juniper Encoder is a contract-first, encoder-only routing model for registered a
 
 `IMPLEMENTED / TESTED / NOT RELEASED`
 
-The repository contains one small, first-party, training-only fixture (32 records) and a reproducible frozen split manifest. It is intentionally insufficient for the 16,121-merge deployment tokenizer, so no production tokenizer, selected checkpoint, calibrated metadata, durable deployment export, quality qualification, independent Sol approval, or Astra approval exists. Consequently this branch makes no production quality, training-completion, GPU/INT8, or release claim.
+The repository contains one small, first-party, training-only routing fixture (32 records), a deterministic repository-technical tokenizer/foundation snapshot, and a reproducible frozen split manifest. The local FLOWBOX worktree has produced provisional tokenizer, model, calibration, floating, and INT8 artifacts, but no selected checkpoint, durable qualified deployment export, quality qualification, independent Sol approval, or Astra approval exists. Consequently this branch makes no production quality, training-completion, or release claim.
 
 The frozen authority is [spec/PROPOSAL_B_FROZEN.md](spec/PROPOSAL_B_FROZEN.md), SHA-256 `ce881075b84e36a28f673e1a41199e91cf0426baf66f788de880d86c156109b2`. The machine-readable contract is [spec/proposal_b.contract.json](spec/proposal_b.contract.json).
 
