@@ -181,9 +181,14 @@ def train_mlm(
     model = MLMTrainingModel(backbone).to(selected_device)
     model.train()
     optimizer = _optimizer_for(model.module, backbone_lr=float(config.get("peak_learning_rate", 1e-4)))
-    total_updates = int(max_updates if max_updates is not None else config.get("successful_update_budget") or 1)
-    warmup = max(1, int(total_updates * float(config.get("warmup_fraction", 0.06))))
-    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda step: min(1.0, (step + 1) / warmup) * max(0.0, 1.0 - max(0, step - warmup) / max(1, total_updates - warmup)))
+    configured_updates = max_updates if max_updates is not None else config.get("successful_update_budget")
+    total_updates = int(configured_updates) if configured_updates is not None else None
+    token_budget = config.get("max_consumed_tokens")
+    if token_budget is not None and (not isinstance(token_budget, int) or token_budget <= 0):
+        raise EncoderError("INVALID_INPUT", "max_consumed_tokens must be a positive integer")
+    schedule_updates = int(total_updates or config.get("scheduler_update_budget", 1_000))
+    warmup = max(1, int(schedule_updates * float(config.get("warmup_fraction", 0.06))))
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda step: min(1.0, (step + 1) / warmup) * max(0.0, 1.0 - max(0, step - warmup) / max(1, schedule_updates - warmup)))
     amp_enabled = bool(config.get("amp", "").startswith("validate-fp16")) and selected_device.type == "cuda"
     scaler = torch.amp.GradScaler("cuda", enabled=amp_enabled)
     masking = MaskingProtocol(seed=seed, mask_rate=float(config.get("mask_rate", 0.15)))
@@ -203,7 +208,7 @@ def train_mlm(
         predecessor_identity = loaded.get("checkpoint_identity")
     losses: list[float] = []
     started = time.monotonic()
-    while successful < total_updates:
+    while (total_updates is None or successful < total_updates) and (token_budget is None or consumed < token_budget or successful == 0):
         attempted += 1
         batch = sampler.next_batch(max(1, int(config.get("batch_size", 1))))
         ids, selected, targets, target_count = _pad_batch(batch, masking, sampler.epoch, selected_device)
@@ -242,6 +247,8 @@ def train_mlm(
                 epoch=sampler.epoch, cursor=sampler.cursor,
             )
             save_checkpoint(Path(output_dir) / f"step-{successful:08d}", model.module, optimizer, scheduler, scaler, metadata, sampler_state=sampler.state(), precision={"device": str(selected_device), "amp_fp16": amp_enabled})
+    if successful == 0:
+        raise EncoderError("BLOCKED_TRAINING", "training ended without a successful optimizer update", {"attempted_updates": attempted, "skipped_updates": skipped, "consumed_tokens": consumed})
     final_dir = Path(output_dir) / f"step-{successful:08d}"
     if not final_dir.exists():
         metadata = CheckpointMetadata(
@@ -253,7 +260,7 @@ def train_mlm(
             epoch=sampler.epoch, cursor=sampler.cursor,
         )
         save_checkpoint(final_dir, model.module, optimizer, scheduler, scaler, metadata, sampler_state=sampler.state(), precision={"device": str(selected_device), "amp_fp16": amp_enabled})
-    result = {"status": "TRAINED", "stage": "mlm", "checkpoint": final_dir.as_posix(), "successful_updates": successful, "attempted_updates": attempted, "skipped_updates": skipped, "consumed_tokens": consumed, "mean_loss": sum(losses) / len(losses) if losses else None, "elapsed_seconds": time.monotonic() - started, "device": str(selected_device), "amp_fp16": amp_enabled, "weights_sha256": sha256_file(final_dir / "model.safetensors")}
+    result = {"status": "TRAINED", "stage": "mlm", "checkpoint": final_dir.as_posix(), "successful_updates": successful, "attempted_updates": attempted, "skipped_updates": skipped, "consumed_tokens": consumed, "token_budget": token_budget, "budget_reached": bool(token_budget is not None and consumed >= token_budget), "mean_loss": sum(losses) / len(losses) if losses else None, "elapsed_seconds": time.monotonic() - started, "device": str(selected_device), "amp_fp16": amp_enabled, "weights_sha256": sha256_file(final_dir / "model.safetensors")}
     write_json(Path(output_dir) / "run.json", result)
     return result
 

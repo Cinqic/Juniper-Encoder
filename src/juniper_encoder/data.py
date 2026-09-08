@@ -190,6 +190,7 @@ def acquire(manifest_path: str | Path, *, output_root: str | Path = "data/raw", 
         artifacts.append({
             "source_id": source["source_id"], "revision": source["revision"], "url": source["url"],
             "upstream_sha256": digest, "path": upstream_path.as_posix(), "size": upstream_path.stat().st_size,
+            "role": source.get("role", "general"),
             "extracted_root": extracted_root.as_posix() if extracted else None, "extracted_files": extracted,
         })
     result = {"status": "ACQUIRED", "manifest_sha256": sha256_file(manifest_path), "artifacts": artifacts}
@@ -268,7 +269,8 @@ def prepare(acquisition_manifest: str | Path, output: str | Path, *, max_records
                 seen_hashes[content_hash] = origin
                 records.append({
                     "record_id": sha256_bytes(f"{source_id}:{origin}:{content_hash}".encode("utf-8")),
-                    "source_id": source_id, "source_lineage": family[1], "document_family": family[1],
+                    "source_id": source_id, "source_role": artifact.get("role", "general"),
+                    "source_lineage": family[1], "document_family": family[1],
                     "conversation_family": family[2], "capability_family": family[3],
                     "origin": origin, "content_sha256": content_hash, "text": text,
                     "cleaning_reason_codes": ["CRLF_NORMALIZED"] if raw_text != text else [],
@@ -351,8 +353,25 @@ def deterministic_split(records: Iterable[dict[str, Any]], ratios: dict[str, flo
 def freeze(records_manifest: str | Path, output: str | Path, ratios: dict[str, float], seed: int = 1729) -> dict[str, Any]:
     payload = _load_json(records_manifest)
     records = payload.get("records", payload) if isinstance(payload, (dict, list)) else []
-    split_records = deterministic_split(records, ratios, seed)
-    result = {"status": "FROZEN" if split_records else "BLOCKED_DATA", "source_manifest_sha256": sha256_file(records_manifest), "records": split_records, "ratios": ratios, "seed": seed}
+    excluded_roles = {"tokenizer_training_only", "training_only", "foundation_training_only"}
+    excluded = [record for record in records if record.get("source_role") in excluded_roles]
+    split_records = deterministic_split(
+        [record for record in records if record.get("source_role") not in excluded_roles],
+        ratios,
+        seed,
+    )
+    result = {
+        "status": "FROZEN" if split_records else "BLOCKED_DATA",
+        "source_manifest_sha256": sha256_file(records_manifest),
+        "records": split_records,
+        "excluded_source_role_counts": {
+            role: sum(record.get("source_role") == role for record in excluded)
+            for role in sorted(excluded_roles)
+            if any(record.get("source_role") == role for record in excluded)
+        },
+        "ratios": ratios,
+        "seed": seed,
+    }
     leakage = audit(split_records)
     result["leakage_audit"] = leakage
     if leakage["status"] != "PASS":

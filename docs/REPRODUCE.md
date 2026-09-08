@@ -21,7 +21,7 @@ python -m juniper_encoder routing conformance --fixtures tests/fixtures/routing
 python -m pytest -q
 ```
 
-The data fixture can be acquired and frozen with:
+The data inputs can be acquired and frozen with:
 
 ```bash
 python -m juniper_encoder data acquire --manifest manifests/sources/approved.json --output-root data/raw
@@ -29,4 +29,13 @@ python -m juniper_encoder data prepare --manifest data/raw/acquisition.json --ou
 python -m juniper_encoder data freeze --config configs/splits.yaml --manifest data/processed/prepared.json --output manifests/data/frozen.json
 ```
 
-`tokenizer corpus` reports the fixture, while `tokenizer train` correctly blocks because it cannot produce all 16,121 frozen merges. Training, calibration, export, target benchmarks, and INT8 qualification must consume immutable manifests and a selected checkpoint. Their CLI commands fail with a machine-readable blocker when those inputs are absent.
+The repository tokenizer snapshot is generated deterministically and is explicitly training-only:
+
+```bash
+python scripts/build_first_party_corpus.py
+python -m juniper_encoder tokenizer corpus --config configs/tokenizer.yaml --output reports/tokenizer-corpus.json
+python -m juniper_encoder tokenizer train --config configs/tokenizer.yaml --output artifacts/tokenizer-vN
+python -m juniper_encoder tokenizer conformance --artifact artifacts/tokenizer-vN
+```
+
+The supervised routing fixture is generated separately with `scripts/build_first_party_supervised_data.py`; it is not mixed into tokenizer training or sealed evaluation. Training, calibration, export, target benchmarks, and INT8 qualification must consume immutable manifests and a selected checkpoint. Their CLI commands fail with a machine-readable blocker when those inputs are absent. Local prototype artifacts do not constitute a selected candidate or release.

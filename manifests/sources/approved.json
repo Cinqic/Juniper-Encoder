@@ -15,5 +15,24 @@
     "domain": "first-party routing capability examples",
     "estimated_bytes": 3113,
     "exclusions": ["no personal data", "no third-party scraped text", "not a production-quality corpus"]
+  },
+  {
+    "source_id": "cinqic-juniper-encoder-repository-v1",
+    "revision": "first-party-repository-technical-snapshot-2026-09-07-v2",
+    "url": "https://github.com/Cinqic/Juniper-Encoder/blob/work/luna-encoder-proposal-b/data/first_party/repository-corpus.jsonl",
+    "local_path": "data/first_party/repository-corpus.jsonl",
+    "upstream_sha256": "282b0757c63c75174de5f53aac6f6f9185e4a83735fead0ec7a6675a279281c3",
+    "retrieval_date": "2026-09-07",
+    "rights_evidence": "First-party Cinqic-authored source and documentation snapshot; repository LICENSE and source history are retained with the snapshot.",
+    "license": "Apache-2.0 for repository-owned source and documentation",
+    "attribution": "Cinqic",
+    "permitted_use": "Tokenizer training and foundation-language pretraining research for Juniper Encoder",
+    "redistribution_status": "source snapshot is versioned in repository; derived model artifacts remain review-gated",
+    "language": "en",
+    "domain": "first-party technical implementation and frozen contract text",
+    "estimated_bytes": 444731,
+    "generator_script_sha256": "8fe49d3cecd1ad6a36c2ace5768810c1257422dd37f6dfed63c53fdd96711be4",
+    "role": "training_only",
+    "exclusions": ["no personal data", "no third-party scraped text", "not a supervised routing-label source", "not used for sealed evaluation"]
   }
 ]

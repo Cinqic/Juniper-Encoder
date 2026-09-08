@@ -112,37 +112,115 @@ class RawByteBPE:
     ) -> "RawByteBPE":
         config = config or TokenizerConfig()
         documents_bytes = [_strict_utf8(document) for document in documents]
-        sequences = [[BYTE_OFFSET + value for value in data] for data in documents_bytes if data]
         byte_map = {i: _token_bytes(i) for i in range(BYTE_OFFSET, BYTE_OFFSET + 256)}
+        byte_representations = set(byte_map.values())
         merges: list[Merge] = []
         next_id = FIRST_MERGE_ID
 
+        # Maintain each document as a linked list of token nodes. Pair counts
+        # and occurrence sets are updated only around a replacement, while a
+        # heap supplies the same ``max frequency, numeric pair`` ordering as
+        # the straightforward reference implementation. ``position`` never
+        # changes, so sorting occurrences preserves the required left-to-right
+        # non-overlapping replacement order even after earlier merges remove
+        # nodes from the list.
+        token: list[int] = []
+        next_node: list[int] = []
+        previous_node: list[int] = []
+        active: list[bool] = []
+        position: list[int] = []
+        document_heads: list[int] = []
+        document_tails: list[int] = []
+        for data in documents_bytes:
+            if not data:
+                continue
+            head = len(token)
+            for index, value in enumerate(data):
+                token.append(BYTE_OFFSET + value)
+                next_node.append(head + index + 1 if index + 1 < len(data) else -1)
+                previous_node.append(head + index - 1 if index else -1)
+                active.append(True)
+                position.append(index)
+            document_heads.append(head)
+            document_tails.append(head + len(data) - 1)
+
+        frequencies: collections.Counter[tuple[int, int]] = collections.Counter()
+        occurrences: dict[tuple[int, int], set[int]] = collections.defaultdict(set)
+        for head in document_heads:
+            current = head
+            while current != -1:
+                right = next_node[current]
+                if right != -1:
+                    pair = (token[current], token[right])
+                    frequencies[pair] += 1
+                    occurrences[pair].add(current)
+                current = right
+
+        import heapq
+
+        heap: list[tuple[int, int, int]] = [(-count, left, right) for (left, right), count in frequencies.items()]
+        heapq.heapify(heap)
+
+        def remove_edge(left_node: int, right_node: int) -> None:
+            if left_node == -1 or right_node == -1:
+                return
+            pair = (token[left_node], token[right_node])
+            frequencies[pair] -= 1
+            occurrences[pair].discard(left_node)
+            heapq.heappush(heap, (-frequencies[pair], pair[0], pair[1]))
+
+        def add_edge(left_node: int, right_node: int) -> None:
+            if left_node == -1 or right_node == -1:
+                return
+            pair = (token[left_node], token[right_node])
+            frequencies[pair] += 1
+            occurrences[pair].add(left_node)
+            heapq.heappush(heap, (-frequencies[pair], pair[0], pair[1]))
+
         while len(merges) < config.merge_count:
-            frequencies: collections.Counter[tuple[int, int]] = collections.Counter()
-            for sequence in sequences:
-                frequencies.update(zip(sequence, sequence[1:]))
-            if not frequencies:
+            pair: tuple[int, int] | None = None
+            while heap:
+                neg_count, left, right = heapq.heappop(heap)
+                current_count = frequencies[(left, right)]
+                if -neg_count == current_count and current_count > 0:
+                    pair = (left, right)
+                    break
+            if pair is None:
                 break
-            # max frequency, then lexicographically smallest numeric pair.
-            pair = min(frequencies, key=lambda candidate: (-frequencies[candidate], candidate[0], candidate[1]))
             left, right = pair
             merged_bytes = byte_map[left] + byte_map[right]
-            if merged_bytes in byte_map.values():
+            if merged_bytes in byte_representations:
                 raise ValueError("training would create a duplicate byte representation")
             merge = Merge(left, right, next_id)
             merges.append(merge)
             byte_map[next_id] = merged_bytes
-            for index, sequence in enumerate(sequences):
-                replaced: list[int] = []
-                cursor = 0
-                while cursor < len(sequence):
-                    if cursor + 1 < len(sequence) and sequence[cursor] == left and sequence[cursor + 1] == right:
-                        replaced.append(next_id)
-                        cursor += 2
-                    else:
-                        replaced.append(sequence[cursor])
-                        cursor += 1
-                sequences[index] = replaced
+            byte_representations.add(merged_bytes)
+
+            selected_nodes: list[int] = []
+            for node in sorted(occurrences[pair], key=lambda value: (position[value], value)):
+                right_node = next_node[node]
+                if active[node] and right_node != -1 and active[right_node] and token[node] == left and token[right_node] == right:
+                    selected_nodes.append(node)
+            for node in selected_nodes:
+                right_node = next_node[node]
+                if not active[node] or right_node == -1 or not active[right_node] or token[node] != left or token[right_node] != right:
+                    continue
+                before = previous_node[node]
+                after = next_node[right_node]
+                remove_edge(before, node)
+                remove_edge(node, right_node)
+                remove_edge(right_node, after)
+                token[node] = next_id
+                next_node[node] = after
+                if after != -1:
+                    previous_node[after] = node
+                if before != -1:
+                    next_node[before] = node
+                active[right_node] = False
+                previous_node[right_node] = -1
+                next_node[right_node] = -1
+                add_edge(before, node)
+                add_edge(node, after)
             next_id += 1
 
         if require_full and len(merges) != config.merge_count:
@@ -151,24 +229,80 @@ class RawByteBPE:
                 "approved corpus did not yield the complete frozen merge vocabulary",
                 {"learned_merges": len(merges), "required_merges": config.merge_count},
             )
+        if len(merges) != config.merge_count:
+            # A caller may explicitly request a diagnostic partial build. Do
+            # not let that artifact claim the frozen deployment vocabulary;
+            # its config must describe the actual payload it contains.
+            config = dataclasses.replace(config, merge_count=len(merges), vocab_size=FIRST_MERGE_ID + len(merges))
         return cls(merges, config=config)
 
     def encode(self, text: str) -> list[int]:
         data = _strict_utf8(text)
         if not data:
             return []
-        sequence = [BYTE_OFFSET + value for value in data]
+        token: list[int] = [BYTE_OFFSET + value for value in data]
+        next_node = [index + 1 if index + 1 < len(token) else -1 for index in range(len(token))]
+        previous_node = [index - 1 if index else -1 for index in range(len(token))]
+        active = [True] * len(token)
+        position = list(range(len(token)))
+        pair_to_rank = {(merge.left, merge.right): rank for rank, merge in enumerate(self.merges)}
+        occurrences: dict[tuple[int, int], set[int]] = collections.defaultdict(set)
+        for node in range(len(token) - 1):
+            pair = (token[node], token[node + 1])
+            if pair in pair_to_rank:
+                occurrences[pair].add(node)
+
+        def remove_edge(left_node: int, right_node: int) -> None:
+            if left_node == -1 or right_node == -1:
+                return
+            pair = (token[left_node], token[right_node])
+            if pair in pair_to_rank:
+                occurrences[pair].discard(left_node)
+
+        def add_edge(left_node: int, right_node: int) -> None:
+            if left_node == -1 or right_node == -1:
+                return
+            pair = (token[left_node], token[right_node])
+            if pair in pair_to_rank:
+                occurrences[pair].add(left_node)
+
+        # Proposal B applies the ordered merge history one rank at a time.
+        # Newly created pairs whose rank has already passed are intentionally
+        # left untouched; this is why a generic "merge lowest current pair"
+        # loop would not be equivalent.
         for merge in self.merges:
-            replaced: list[int] = []
-            cursor = 0
-            while cursor < len(sequence):
-                if cursor + 1 < len(sequence) and sequence[cursor] == merge.left and sequence[cursor + 1] == merge.right:
-                    replaced.append(merge.new_id)
-                    cursor += 2
-                else:
-                    replaced.append(sequence[cursor])
-                    cursor += 1
-            sequence = replaced
+            pair = (merge.left, merge.right)
+            selected_nodes: list[int] = []
+            for node in sorted(occurrences[pair], key=lambda value: (position[value], value)):
+                right_node = next_node[node]
+                if active[node] and right_node != -1 and active[right_node] and token[node] == merge.left and token[right_node] == merge.right:
+                    selected_nodes.append(node)
+            for node in selected_nodes:
+                right_node = next_node[node]
+                if not active[node] or right_node == -1 or not active[right_node] or token[node] != merge.left or token[right_node] != merge.right:
+                    continue
+                before = previous_node[node]
+                after = next_node[right_node]
+                remove_edge(before, node)
+                remove_edge(node, right_node)
+                remove_edge(right_node, after)
+                token[node] = merge.new_id
+                next_node[node] = after
+                if after != -1:
+                    previous_node[after] = node
+                if before != -1:
+                    next_node[before] = node
+                active[right_node] = False
+                previous_node[right_node] = -1
+                next_node[right_node] = -1
+                add_edge(before, node)
+                add_edge(node, after)
+        sequence: list[int] = []
+        node = 0
+        while node != -1:
+            if active[node]:
+                sequence.append(token[node])
+            node = next_node[node]
         return sequence
 
     def decode(self, token_ids: Sequence[int]) -> str:

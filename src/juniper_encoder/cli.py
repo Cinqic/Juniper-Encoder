@@ -29,7 +29,7 @@ from .tokenizer import RawByteBPE, TokenizerConfig, validate_round_trip
 from .train.checkpoint import validate_checkpoint_metadata
 from .train.protocol import MaskingProtocol, ResolvedProtocol, require_training_runtime, run_mechanical_smoke
 from .train.runner import TokenExample, train_mlm
-from .utils import canonical_json_bytes, load_config, sha256_file, write_json
+from .utils import canonical_json_bytes, load_config, sha256_bytes, sha256_file, write_json
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -193,14 +193,37 @@ def _records_payload(path: str | Path) -> list[dict[str, Any]]:
     return records
 
 
-def _load_training_examples(data_path: str | Path, tokenizer_path: str | Path, split: str = "train") -> tuple[list[TokenExample], str]:
+def _load_training_examples(
+    data_path: str | Path,
+    tokenizer_path: str | Path,
+    split: str = "train",
+    *,
+    allowed_source_roles: set[str] | None = None,
+    max_sequence_length: int = 1_024,
+) -> tuple[list[TokenExample], str]:
     tokenizer = RawByteBPE.load(tokenizer_path)
     payload = _json_payload(data_path)
     records = payload.get("records", []) if isinstance(payload, dict) else payload
     if not isinstance(records, list):
         raise EncoderError("BLOCKED_DATA", "training manifest does not contain records")
-    selected = [record for record in records if record.get("split", split) == split]
-    examples = [TokenExample.from_record(record, tokenizer) for record in selected]
+    selected = [
+        record
+        for record in records
+        if record.get("split", split) == split
+        and (not allowed_source_roles or record.get("source_role", "general") in allowed_source_roles)
+    ]
+    examples: list[TokenExample] = []
+    for record in selected:
+        text = record.get("text", record.get("content"))
+        record_id = record.get("record_id")
+        if not isinstance(text, str) or not isinstance(record_id, str):
+            raise EncoderError("BLOCKED_DATA", "training records need text and immutable record_id")
+        token_ids = tuple(int(token) for token in tokenizer.encode(text))
+        if not token_ids:
+            continue
+        for offset in range(0, len(token_ids), max_sequence_length):
+            chunk = token_ids[offset:offset + max_sequence_length]
+            examples.append(TokenExample(f"{record_id}#chunk-{offset // max_sequence_length:05d}", chunk))
     if not examples:
         raise EncoderError("BLOCKED_DATA", "training split contains no usable examples", {"split": split})
     return examples, tokenizer.identity()
@@ -282,7 +305,8 @@ def _dispatch(args: argparse.Namespace) -> dict[str, Any]:
             paths = sorted(glob.glob(config.get("training_glob", ""), recursive=True))
             if not paths:
                 return _status_result("BLOCKED_DATA", reason="no approved tokenizer-training corpus is materialized")
-            stats = {"files": [], "document_count": 0, "byte_count": 0}
+            stats = {"files": [], "document_count": 0, "byte_count": 0, "document_byte_count": 0, "language_scope": config.get("language_scope", ["en"]), "domain_scope": config.get("domain_scope", ["technical", "capability"])}
+            documents: list[str] = []
             for path in paths:
                 file_path = Path(path)
                 if not file_path.is_file():
@@ -290,8 +314,10 @@ def _dispatch(args: argparse.Namespace) -> dict[str, Any]:
                 data = file_path.read_bytes()
                 file_info = {"path": path, "size": len(data), "sha256": sha256_file(file_path)}
                 stats["files"].append(file_info)
-                stats["document_count"] += 1
                 stats["byte_count"] += len(data)
+                documents.extend(_documents_from_glob(path))
+            stats["document_count"] = len(documents)
+            stats["document_byte_count"] = sum(len(document.encode("utf-8")) for document in documents)
             result = _status_result("CORPUS_READY", config=config, **stats)
             if args.output:
                 write_json(args.output, result)
@@ -306,7 +332,13 @@ def _dispatch(args: argparse.Namespace) -> dict[str, Any]:
             tokenizer = RawByteBPE.train(documents, config=TokenizerConfig(**{key: value for key, value in config.items() if key in {"merge_count", "vocab_size", "implementation_version", "unicode_database", "tie_break", "overlap_rule"}}), require_full=bool(config.get("require_full_vocabulary", True)))
             if not args.output:
                 raise EncoderError("INVALID_INPUT", "tokenizer train requires --output")
-            return tokenizer.save(args.output, source_sha=os.environ.get("GIT_COMMIT"), corpus_hash=sha256_file(args.config))
+            corpus_files = [
+                {"path": path, "sha256": sha256_file(path), "size": Path(path).stat().st_size}
+                for path in sorted(glob.glob(config.get("training_glob", ""), recursive=True))
+                if Path(path).is_file()
+            ]
+            corpus_hash = sha256_bytes(canonical_json_bytes(corpus_files))
+            return tokenizer.save(args.output, source_sha=_source_sha(), corpus_hash=corpus_hash)
         if args.action == "compare":
             left, right = RawByteBPE.load(args.left), RawByteBPE.load(args.right)
             return _status_result("PASS" if left.compare_payload(right) else "FAIL", left=left.identity(), right=right.identity())
@@ -381,8 +413,14 @@ def _dispatch(args: argparse.Namespace) -> dict[str, Any]:
         if args.action == "run":
             if not args.data or not args.tokenizer or not args.output or not args.config:
                 raise EncoderError("INVALID_INPUT", "train run requires --config, --data, --tokenizer, and --output")
-            examples, tokenizer_identity = _load_training_examples(args.data, args.tokenizer)
-            return train_mlm(examples, load_config(args.config), output_dir=args.output, source_sha=_source_sha(), tokenizer_identity=tokenizer_identity, data_identity=sha256_file(args.data), device=args.device, checkpoint_every=args.checkpoint_every, resume_dir=args.resume)
+            config = load_config(args.config)
+            examples, tokenizer_identity = _load_training_examples(
+                args.data,
+                args.tokenizer,
+                allowed_source_roles=set(config.get("training_source_roles", [])),
+                max_sequence_length=int(config.get("max_sequence_length", 1_024)),
+            )
+            return train_mlm(examples, config, output_dir=args.output, source_sha=_source_sha(), tokenizer_identity=tokenizer_identity, data_identity=sha256_file(args.data), device=args.device, checkpoint_every=args.checkpoint_every, resume_dir=args.resume)
         if args.action == "profile":
             if not args.config:
                 raise EncoderError("INVALID_INPUT", "train profile requires --config")
@@ -391,8 +429,13 @@ def _dispatch(args: argparse.Namespace) -> dict[str, Any]:
         if args.action == "resume-test":
             if not args.data or not args.tokenizer or not args.config or not args.output:
                 raise EncoderError("INVALID_INPUT", "train resume-test requires --config, --data, --tokenizer, and --output")
-            examples, tokenizer_identity = _load_training_examples(args.data, args.tokenizer)
             config = load_config(args.config)
+            examples, tokenizer_identity = _load_training_examples(
+                args.data,
+                args.tokenizer,
+                allowed_source_roles=set(config.get("training_source_roles", [])),
+                max_sequence_length=int(config.get("max_sequence_length", 1_024)),
+            )
             first = train_mlm(examples, config, output_dir=Path(args.output) / "uninterrupted", source_sha=_source_sha(), tokenizer_identity=tokenizer_identity, data_identity=sha256_file(args.data), device=args.device, max_updates=2, checkpoint_every=1)
             interrupted = train_mlm(examples, config, output_dir=Path(args.output) / "interrupted", source_sha=_source_sha(), tokenizer_identity=tokenizer_identity, data_identity=sha256_file(args.data), device=args.device, max_updates=1, checkpoint_every=1)
             resumed = train_mlm(examples, config, output_dir=Path(args.output) / "resumed", source_sha=_source_sha(), tokenizer_identity=tokenizer_identity, data_identity=sha256_file(args.data), device=args.device, max_updates=2, checkpoint_every=1, resume_dir=interrupted["checkpoint"])
@@ -430,9 +473,9 @@ def _dispatch(args: argparse.Namespace) -> dict[str, Any]:
             model.load_state_dict(state, strict=True)
             optimizer = torch.optim.AdamW(model.parameters(), lr=float(config.get("head_learning_rate", 1e-4)))
             loaded = load_checkpoint(source_checkpoint, model, optimizer, restore_rng=True)
-            rows = _records_payload(args.data)
+            rows = [row for row in _records_payload(args.data) if row.get("split", "train") == "train"]
             if not rows:
-                raise EncoderError("BLOCKED_DATA", "downstream manifest has no labeled rows")
+                raise EncoderError("BLOCKED_DATA", "downstream manifest has no labeled training rows")
             if args.stage == "classifier":
                 if any(not isinstance(row.get("input_ids"), list) or not isinstance(row.get("label_index"), int) for row in rows):
                     raise EncoderError("BLOCKED_DATA", "classifier rows need input_ids and label_index")
@@ -453,7 +496,7 @@ def _dispatch(args: argparse.Namespace) -> dict[str, Any]:
                 candidates = [ [row["positive_vector"], *row.get("negative_vectors", [])] for row in rows ]
                 inputs = torch.tensor([row["input_ids"] for row in rows], dtype=torch.long, device=selected_device)
                 labels = {"candidates": torch.tensor(candidates, dtype=torch.float32, device=selected_device)}
-            updates = int(config.get("updates", config.get("downstream_updates", 1)))
+            updates = int(config.get("updates", config.get("downstream_updates", config.get("downstream_passes", 1))))
             training = train_head(model, [(inputs, labels)], objective=args.stage, optimizer=optimizer, device=selected_device, updates=updates)
             successful = int(loaded["metadata"].get("successful_updates", 0)) + int(training["successful_updates"])
             destination = Path(args.output) / f"step-{successful:08d}"
@@ -532,19 +575,6 @@ def _dispatch(args: argparse.Namespace) -> dict[str, Any]:
             if missing:
                 raise EncoderError("BLOCKED_CALIBRATION", "calibration metadata is incomplete", {"missing": missing})
             return _status_result("PASS", calibration_identity=sha256_file(args.manifest), fields=sorted(payload))
-        if not args.manifest or not args.output:
-            raise EncoderError("INVALID_INPUT", "calibration requires --manifest input rows and --output")
-        rows = _records_payload(args.manifest)
-        if args.action == "temperature":
-            logits = [row["logits"] for row in rows if "logits" in row]
-            labels = [int(row.get("label_index", row.get("label"))) for row in rows if "logits" in row]
-            fitted = fit_temperature(logits, labels)
-            write_json(args.output, fitted)
-            return fitted
-        if args.action == "thresholds":
-            fitted = select_thresholds(rows)
-            write_json(args.output, fitted)
-            return fitted
         if args.action == "freeze":
             required = (args.temperature_artifact, args.thresholds_artifact, args.checkpoint_identity, args.tokenizer_identity, args.threshold_subset_identity, args.temperature_subset_identity, args.registry_snapshot_identity, args.implementation_sha, args.output)
             if any(value is None for value in required):
@@ -561,6 +591,19 @@ def _dispatch(args: argparse.Namespace) -> dict[str, Any]:
             )
             write_json(args.output, manifest)
             return manifest
+        if not args.manifest or not args.output:
+            raise EncoderError("INVALID_INPUT", "calibration requires --manifest input rows and --output")
+        rows = _records_payload(args.manifest)
+        if args.action == "temperature":
+            logits = [row["logits"] for row in rows if "logits" in row]
+            labels = [int(row.get("label_index", row.get("label"))) for row in rows if "logits" in row]
+            fitted = fit_temperature(logits, labels)
+            write_json(args.output, fitted)
+            return fitted
+        if args.action == "thresholds":
+            fitted = select_thresholds(rows)
+            write_json(args.output, fitted)
+            return fitted
 
     if args.command == "export":
         if args.action == "verify":

@@ -31,6 +31,20 @@ def test_deterministic_tie_break_and_repeat_build():
     assert first.merges[0].left < first.merges[0].right or first.merges[0].left == first.merges[0].right
 
 
+def test_partial_build_describes_its_actual_vocabulary():
+    tokenizer = RawByteBPE.train(["tiny"], config=TokenizerConfig(), require_full=False)
+    assert tokenizer.config.merge_count == len(tokenizer.merges)
+    assert tokenizer.config.vocab_size == 263 + len(tokenizer.merges)
+
+
+def test_bpe_overlap_replacement_is_left_to_right_and_non_overlapping():
+    config = TokenizerConfig(merge_count=1, vocab_size=264)
+    tokenizer = RawByteBPE.train(["aaa"], config=config, require_full=False)
+    assert tokenizer.merges[0].left == 7 + ord("a")
+    assert tokenizer.merges[0].right == 7 + ord("a")
+    assert tokenizer.encode("aaa") == [263, 7 + ord("a")]
+
+
 def test_incomplete_deployment_vocabulary_is_a_blocker():
     config = TokenizerConfig()
     with pytest.raises(EncoderError) as error:

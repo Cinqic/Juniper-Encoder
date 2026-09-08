@@ -5,6 +5,7 @@ __pycache__/
 data/*
 !data/first_party/
 !data/first_party/seed-corpus.jsonl
+!data/first_party/repository-corpus.jsonl
 artifacts/*
 !artifacts/README.md
 *.safetensors
