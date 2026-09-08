@@ -45,26 +45,28 @@ def _slices(row: dict[str, Any], records: dict[str, RegistryRecord]) -> list[str
     return names
 
 
-def _load_model(checkpoint: str | Path, device: Any) -> Any:
+def _load_model(checkpoint: str | Path, device: Any, *, quantized: bool = False) -> Any:
     import torch
-    from safetensors.torch import load_file
+    if quantized:
+        from juniper_encoder.quantization import _load_quantized_model
 
-    from juniper_encoder.model import DeploymentModel
+        model = _load_quantized_model(checkpoint)
+    else:
+        from safetensors.torch import load_file
+        from juniper_encoder.model import DeploymentModel
 
-    model = DeploymentModel(seed=1729)
-    model.load_state_dict(load_file(str(Path(checkpoint) / "model.safetensors"), device="cpu"), strict=True)
+        model = DeploymentModel(seed=1729)
+        model.load_state_dict(load_file(str(Path(checkpoint) / "model.safetensors"), device="cpu"), strict=True)
     return model.to(device).eval()
 
 
-def _calibration(path: str | None, *, checkpoint_identity: str, tokenizer_identity: str, snapshot_identity: str) -> Calibration | None:
+def _calibration(path: str | None, *, checkpoint_identity: str | None, tokenizer_identity: str, snapshot_identity: str) -> Calibration | None:
     if not path:
         return None
     payload = _json(path)
-    expected = {
-        "checkpoint_identity": checkpoint_identity,
-        "tokenizer_identity": tokenizer_identity,
-        "registry_snapshot_identity": snapshot_identity,
-    }
+    expected = {"tokenizer_identity": tokenizer_identity, "registry_snapshot_identity": snapshot_identity}
+    if checkpoint_identity is not None:
+        expected["checkpoint_identity"] = checkpoint_identity
     mismatches = {key: {"expected": value, "actual": payload.get(key)} for key, value in expected.items() if payload.get(key) != value}
     if mismatches:
         raise ValueError(f"calibration identity mismatch: {mismatches}")
@@ -88,6 +90,7 @@ def main() -> None:
     parser.add_argument("--tokenizer", required=True)
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--calibration")
+    parser.add_argument("--quantized", action="store_true")
     parser.add_argument("--device", default="cuda")
     args = parser.parse_args()
 
@@ -96,11 +99,11 @@ def main() -> None:
     device = torch.device(args.device if args.device else ("cuda" if torch.cuda.is_available() else "cpu"))
     tokenizer = RawByteBPE.load(args.tokenizer)
     checkpoint_identity = sha256_file(Path(args.checkpoint) / "model.safetensors")
-    model = _load_model(args.checkpoint, device)
+    model = _load_model(args.checkpoint, device, quantized=args.quantized)
     registry_payload = _json(args.registry)
     records = tuple(RegistryRecord.from_mapping(item) for item in registry_payload)
     by_id = {record.id: record for record in records}
-    variant_identity = f"checkpoint:{checkpoint_identity}"
+    variant_identity = f"int8:{checkpoint_identity}" if args.quantized else f"checkpoint:{checkpoint_identity}"
     snapshot = RegistrySnapshot.create(records, tokenizer_identity=tokenizer.identity(), encoder_variant_identity=variant_identity)
 
     def tensor(ids: Any) -> Any:
@@ -112,7 +115,7 @@ def main() -> None:
             return model.retrieval_vector(tensor(ids))[0].detach().cpu().tolist()
 
     index = RegistryIndex.build(snapshot, encode_record)
-    calibration = _calibration(args.calibration, checkpoint_identity=checkpoint_identity, tokenizer_identity=tokenizer.identity(), snapshot_identity=snapshot.snapshot_identity)
+    calibration = _calibration(args.calibration, checkpoint_identity=None if args.quantized else checkpoint_identity, tokenizer_identity=tokenizer.identity(), snapshot_identity=snapshot.snapshot_identity)
     rows = _records(args.requests)
     predictions: list[dict[str, Any]] = []
     threshold_rows: list[dict[str, Any]] = []
