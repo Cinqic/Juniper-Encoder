@@ -1,16 +1,30 @@
 # Juniper Encoder
 
-Juniper Encoder is a contract-first, encoder-only routing model for registered agents, tools, and skills. This repository contains the implementation and reproducibility controls for the supplied frozen Proposal B instructions.
+A small encoder-only model for routing user requests to registered agents, tools, and skills.
 
-## Status
+## RETIRED — 2026-09-15
 
-`IMPLEMENTED / TESTED / NOT RELEASED`
+`RETIRED / RESEARCH COMPLETE / NOT RELEASED / NOT PRODUCTION-QUALIFIED`
 
-The repository contains one small, first-party, training-only routing fixture (32 records), a deterministic repository-technical tokenizer/foundation snapshot, and a reproducible frozen split manifest. The local FLOWBOX worktree has produced provisional tokenizer, model, calibration, floating, and INT8 artifacts, but no selected checkpoint, durable qualified deployment export, quality qualification, independent Sol approval, or Astra approval exists. Consequently this branch makes no production quality, training-completion, or release claim.
+**This project is finished and this repository is an archive.** It is not under development, not awaiting review, and not on a release path. See **[RETIRED.md](RETIRED.md)** for the canonical retirement record.
+
+The source, specifications, manifests, and measured evidence remain published for historical and research purposes. Nothing here is a maintained dependency or a supported model.
+
+### Final outcome
+
+The frozen Proposal B design was implemented end to end and executed: contract-exact model construction and parameter audit, tokenizer training, a CUDA foundation run, chained downstream training, calibration, evaluation, floating and INT8 exports, and the full 84-case benchmark matrix. The measured routing quality was inadequate for qualification — held-out exact accuracy `0.00`, development false-CALL rate `1.0`, aggregate decision macro-F1 `~0.2807`. The matched INT8 export was rejected on latency. No production checkpoint was selected, no independent review occurred, and no model was released.
+
+Full measurements, including the favorable ones, are in [RETIRED.md](RETIRED.md).
+
+## Repository contents
 
 The frozen authority is [spec/PROPOSAL_B_FROZEN.md](spec/PROPOSAL_B_FROZEN.md), SHA-256 `ce881075b84e36a28f673e1a41199e91cf0426baf66f788de880d86c156109b2`. The machine-readable contract is [spec/proposal_b.contract.json](spec/proposal_b.contract.json).
 
-## Quick start
+The checked-in first-party fixture is documented in [manifests/sources/approved.json](manifests/sources/approved.json) and [manifests/data/frozen.json](manifests/data/frozen.json). It supports provenance, split, tokenizer, and overfit-pipeline verification only; it was never a production corpus.
+
+## Running the archived checks
+
+The contract-only checks still run without PyTorch:
 
 ```bash
 python3 -m venv .venv
@@ -21,12 +35,10 @@ python -m juniper_encoder routing conformance --fixtures tests/fixtures/routing
 python -m pytest -q
 ```
 
-The PyTorch/CUDA runtime is pinned in `requirements/flowbox.lock` from the official CUDA 12.8 index and has been imported on FLOWBOX. The RTX 2060 reports native BF16 unsupported; the FP16 AMP probe passes. Training and deployment still require the separate data/checkpoint gates below.
+The PyTorch/CUDA runtime is pinned in `requirements/flowbox.lock` from the official CUDA 12.8 index. The RTX 2060 used for this work reports native BF16 unsupported; the FP16 AMP probe passes.
 
-The checked-in first-party fixture is documented in [manifests/sources/approved.json](manifests/sources/approved.json) and [manifests/data/frozen.json](manifests/data/frozen.json). It supports provenance, split, tokenizer, and overfit-pipeline verification only; it must not be presented as a production corpus.
+## Historical documentation
 
-## Reproduction and evidence
+[docs/REPRODUCE.md](docs/REPRODUCE.md), [docs/TRAINING.md](docs/TRAINING.md), [docs/DATA.md](docs/DATA.md), [docs/MODEL_CARD.md](docs/MODEL_CARD.md), and [docs/DECISIONS.md](docs/DECISIONS.md) describe the work as it stood during development. [docs/HANDOFF.md](docs/HANDOFF.md) is a superseded historical handoff. Heavy data, checkpoints, indexes, and exports were referenced by immutable external artifact identity and are not in Git history.
 
-See [docs/REPRODUCE.md](docs/REPRODUCE.md), [docs/TRAINING.md](docs/TRAINING.md), [docs/DATA.md](docs/DATA.md), and [docs/HANDOFF.md](docs/HANDOFF.md). Heavy data, checkpoints, indexes, and exports must be referenced by immutable external artifact identity; they do not belong in ordinary Git history.
-
-The Apache-2.0 software license in [LICENSE](LICENSE) does not grant rights to any future corpus, tokenizer source material, or model artifacts.
+The Apache-2.0 software license in [LICENSE](LICENSE) does not grant rights to any corpus, tokenizer source material, or model artifacts.

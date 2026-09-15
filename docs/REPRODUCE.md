@@ -1,5 +1,7 @@
 # Reproduce
 
+> Historical document. Juniper Encoder was retired on 2026-09-15; see [RETIRED.md](../RETIRED.md) for the canonical final status. The text below describes the project as it stood during development.
+
 All commands run from the repository root and should be executed at the exact candidate source SHA. Before any expensive work, capture the host and runtime with `bash scripts/preflight.sh --output reports/preflight/flowbox.json`.
 
 The canonical environment reconstruction is:

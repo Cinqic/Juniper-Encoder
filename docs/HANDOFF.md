@@ -1,4 +1,15 @@
-# Candidate handoff
+# Candidate handoff (SUPERSEDED — HISTORICAL)
+
+> **This handoff is superseded and must not be acted on.**
+> Juniper Encoder was retired on 2026-09-15. It is not under development and no one is expected to continue it.
+> The canonical current status is [RETIRED.md](../RETIRED.md).
+>
+> The text below is preserved unchanged as the historical handoff written while the project was still active.
+> Its status line and "Required next action" describe the state at that time, not the final state.
+
+---
+
+## Historical handoff (as written during development)
 
 ## Current status
 
