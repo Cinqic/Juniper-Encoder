@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+data/*
+!data/first_party/
+!data/first_party/seed-corpus.jsonl
+!data/first_party/repository-corpus.jsonl
+artifacts/*
+!artifacts/README.md
+*.safetensors
+*.pt
+*.pth
+*.onnx
+*.npz

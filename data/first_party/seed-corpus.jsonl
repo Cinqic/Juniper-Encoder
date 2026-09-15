@@ -1,0 +1,32 @@
+{"id":"fp-001","text":"A request may be routed to a registered tool when the tool purpose matches the user's intent."}
+{"id":"fp-002","text":"An agent can decompose a complex request, while a skill can provide a focused capability."}
+{"id":"fp-003","text":"A direct greeting is normally a no-call decision unless a capability is explicitly requested."}
+{"id":"fp-004","text":"A missing required input can make a valid capability request require clarification."}
+{"id":"fp-005","text":"An unsupported request should not produce a fabricated capability identifier."}
+{"id":"fp-006","text":"The active registry is an immutable snapshot for one routing request."}
+{"id":"fp-007","text":"A changed capability description requires a fresh description embedding."}
+{"id":"fp-008","text":"A tokenizer preserves Unicode by encoding text as strict UTF-8 bytes."}
+{"id":"fp-009","text":"Literal structural token spellings in content remain ordinary bytes."}
+{"id":"fp-010","text":"The request formatter removes the oldest complete history entry when context is full."}
+{"id":"fp-011","text":"The current user request is never silently truncated."}
+{"id":"fp-012","text":"Retrieval scores registered descriptions using normalized dot product."}
+{"id":"fp-013","text":"The operational shortlist contains at most eight capabilities."}
+{"id":"fp-014","text":"A clear retrieval margin may skip cross-encoding and use the fast path."}
+{"id":"fp-015","text":"An ambiguous shortlist is reranked before the decision classifier runs."}
+{"id":"fp-016","text":"Reranker scores are relevance scores, not confidence probabilities."}
+{"id":"fp-017","text":"The decision classifier returns CALL, NO_CALL, or CLARIFY."}
+{"id":"fp-018","text":"The classifier cannot select a capability outside the final ranked candidates."}
+{"id":"fp-019","text":"A no-call result carries a null capability identifier."}
+{"id":"fp-020","text":"An empty registry returns NO_CALL after request validation."}
+{"id":"fp-021","text":"Exact score ties use ascending ASCII capability identifiers."}
+{"id":"fp-022","text":"Padding rows are zeroed after every residual branch."}
+{"id":"fp-023","text":"Layer normalization statistics are evaluated in float32."}
+{"id":"fp-024","text":"Attention is bidirectional and does not use a causal mask."}
+{"id":"fp-025","text":"RoPE rotates adjacent query and key coordinate pairs."}
+{"id":"fp-026","text":"The retrieval head pools ordinary content positions and excludes structural tokens."}
+{"id":"fp-027","text":"A candidate artifact records its source, checkpoint, tokenizer, and calibration identities."}
+{"id":"fp-028","text":"A safe tensor checkpoint preserves optimizer and random-state information for resume."}
+{"id":"fp-029","text":"An INT8 artifact must retain floating point task heads unless separately validated."}
+{"id":"fp-030","text":"Benchmark failures and unsupported backends remain visible in the result matrix."}
+{"id":"fp-031","text":"A reviewer audits an exact candidate source commit independently."}
+{"id":"fp-032","text":"The encoder selects a receiver; it does not execute the receiver's action."}

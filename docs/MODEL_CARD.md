@@ -1,0 +1,7 @@
+# Juniper Encoder model card
+
+**Status: NOT RELEASED.** A local prototype artifact chain exists, but no qualified deployment artifact is approved.
+
+The frozen architecture targets 49,441,796 deployed parameters and 49,308,672 shared-backbone parameters. Mode totals are retrieval 49,439,744, decision 49,310,211, reranking 49,309,185, and fast pipeline 49,441,283. These are contract counts, not evidence that weights exist.
+
+Training is specified as random initialization with a temporary MLM stage followed by retrieval, reranker, classifier, and optional joint stabilization. This branch contains a 3,113-byte general fixture plus a deterministic first-party repository snapshot for tokenizer/foundation training, and separately authored routing rows for pipeline validation. The FLOWBOX worktree produced real provisional model, calibration, floating, and INT8 artifacts, but the data is not production-scale or independently reviewed; the quality gates fail, the exact 84-case target benchmark is measured, and INT8 latency/isolated-memory qualification is not complete. No target is supported or released.

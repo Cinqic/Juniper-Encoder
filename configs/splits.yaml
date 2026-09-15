@@ -1,0 +1,1 @@
+{"ratios":{"train":0.8,"development":0.1,"calibration":0.05,"test":0.05},"group_keys":["source_lineage","document_family","conversation_family","capability_family"],"sealed_test":true,"seed":1729}

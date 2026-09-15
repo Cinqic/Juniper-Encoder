@@ -1,0 +1,28 @@
+requirement_id,proposal_section,exact_text,implementation_symbol,config_field,test_id,expected_result,evidence_path_hash,status
+PB-01-001,1,"Routes requests to registered agents tools and skills without generation or execution",src/juniper_encoder/routing.py,routing,tests/routing/test_routing.py,one decision and at most one capability, ,IMPLEMENTED
+PB-02-001,2,"Dense 12-layer 512-wide bidirectional encoder architecture",src/juniper_encoder/model.py,configs/model.yaml,tests/contract/test_actual_model.py,exact model shape, ,IMPLEMENTED
+PB-03-001,3,"Actual named tensor parameter counts",src/juniper_encoder/model.py,configs/model.yaml,tests/contract/test_actual_model.py,49441796 deployed parameters, ,IMPLEMENTED
+PB-04-001,4,"Exact Transformer forward computation",src/juniper_encoder/model.py,configs/model.yaml,tests/numerics/test_model_contract.py,finite forward and correct padding, ,IMPLEMENTED
+PB-05-001,5,"Dropout only at four frozen locations",src/juniper_encoder/model.py,configs/model.yaml,tests/numerics/test_model_contract.py,dropout contract is explicit, ,IMPLEMENTED
+PB-06-001,6,"Adjacent-pair RoPE with continuous positions",src/juniper_encoder/model.py,configs/model.yaml,tests/contract/test_actual_model.py,positive rotation and no scaling, ,IMPLEMENTED
+PB-07-001,7,"Raw UTF-8 byte BPE with exact vocabulary",src/juniper_encoder/tokenizer.py,configs/tokenizer.yaml,tests/tokenizer/test_tokenizer.py,lossless ordinary content and deterministic merges, ,IMPLEMENTED
+PB-08-001,8,"Seven-field external capability registry",src/juniper_encoder/formatting.py,configs/data.yaml,tests/routing/test_routing.py,strict ordered registry validation, ,IMPLEMENTED
+PB-09-001,9,"Exact normalized dot-product capability index",src/juniper_encoder/registry.py,configs/retrieval.yaml,tests/routing/test_routing.py,snapshot-compatible deterministic search, ,IMPLEMENTED
+PB-10-001,10,"256-token request context with oldest-history reduction",src/juniper_encoder/formatting.py,configs/splits.yaml,tests/routing/test_routing.py,current request never silently truncated, ,IMPLEMENTED
+PB-11-001,11,"Frozen request capability pair and decision templates",src/juniper_encoder/formatting.py,configs/model.yaml,tests/routing/test_routing.py,structural boundaries preserved, ,IMPLEMENTED
+PB-12-001,12,"Validate retrieve shortlist rerank classify and return",src/juniper_encoder/routing.py,configs/retrieval.yaml,tests/routing/test_routing.py,conditional and reranked paths are deterministic, ,IMPLEMENTED
+PB-13-001,13,"Empty registry returns NO_CALL after validation",src/juniper_encoder/routing.py,configs/evaluation.yaml,tests/routing/test_routing.py,no neural routing inference, ,IMPLEMENTED
+PB-14-001,14,"Masked mean pooling and 512-to-256 normalized retrieval head",src/juniper_encoder/model.py,configs/retrieval.yaml,tests/contract/test_actual_model.py,FP32 finite retrieval vectors, ,IMPLEMENTED
+PB-15-001,15,"Bias-equipped 512-to-1 reranker score",src/juniper_encoder/model.py,configs/reranker.yaml,tests/contract/test_actual_model.py,raw FP32 score, ,IMPLEMENTED
+PB-16-001,16,"Three-class decision classifier",src/juniper_encoder/model.py,configs/classifier.yaml,tests/routing/test_routing.py,CALL NO_CALL CLARIFY ordering, ,IMPLEMENTED
+PB-17-001,17,"Positive temperature calibration with lowest-index ties",src/juniper_encoder/calibration.py,configs/calibration.yaml,tests/routing/test_calibration.py,calibration metadata is finite, ,IMPLEMENTED
+PB-18-001,18,"Successful output and separate routing metadata",src/juniper_encoder/routing.py,schemas/output.schema.json,tests/routing/test_routing.py,capability ID comes from snapshot, ,IMPLEMENTED
+PB-19-001,19,"Frozen machine-readable error codes",src/juniper_encoder/errors.py,schemas/error.schema.json,tests/routing/test_routing.py,explicit errors preserve precedence, ,IMPLEMENTED
+PB-20-001,20,"Rejection-truncated initialization and zero PAD row",src/juniper_encoder/model.py,configs/model.yaml,tests/contract/test_actual_model.py,PAD remains zero, ,IMPLEMENTED
+PB-21-001,21,"Temporary MLM head is excluded from deployment",src/juniper_encoder/train/runner.py,configs/mlm.yaml,tests/training/test_protocol.py,MLM-only state is not exportable, ,PARTIAL
+PB-22-001,22,"LayerNorm softmax pooling and outputs use required precision",src/juniper_encoder/model.py,configs/model.yaml,tests/numerics/test_model_contract.py,finite FP32 outputs, ,IMPLEMENTED
+PB-23-001,23,"Per-component and end-to-end evaluation metrics",src/juniper_encoder/evaluation.py,configs/evaluation.yaml,tests/evaluation/test_metrics.py,denominators and slices are materialized, ,PARTIAL
+PB-24-001,24,"Conditional versus always-rerank comparison",src/juniper_encoder/routing.py,configs/calibration.yaml,tests/routing/test_routing.py,paired path metrics are reported, ,PARTIAL
+PB-25-001,25,"Matched INT8 gates and floating exclusions",src/juniper_encoder/quantization.py,configs/quantization.yaml,tests/export/test_quantization.py,real INT8 payload or explicit rejection, ,PARTIAL
+PB-26-001,26,"Complete benchmark matrix with raw samples",src/juniper_encoder/benchmark.py,configs/benchmarks.yaml,tests/benchmark/test_benchmark.py,20 warmups and 200 measured runs, ,PARTIAL
+PB-27-001,27,"Frozen architecture summary and NOT RELEASED boundary",docs/HANDOFF.md,status,tests/integration/test_cli.py,no release claim before independent review, ,PARTIAL

@@ -1,0 +1,1 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","required":["artifact_type","sha256"],"properties":{"artifact_type":{"type":"string"},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"}}}

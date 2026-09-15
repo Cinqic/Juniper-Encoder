@@ -1,0 +1,1 @@
+{"vocab_size":16384,"blocks":12,"width":512,"q_heads":8,"kv_heads":8,"head_dim":64,"geglu_width":1536,"rope_theta":10000.0,"layer_norm_epsilon":0.00001,"dropout":0.1,"native_context":1024}

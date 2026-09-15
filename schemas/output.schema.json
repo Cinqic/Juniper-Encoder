@@ -1,0 +1,1 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","additionalProperties":false,"required":["decision","capability_id"],"properties":{"decision":{"enum":["CALL","NO_CALL","CLARIFY"]},"capability_id":{"type":["string","null"]}}}

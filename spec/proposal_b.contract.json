@@ -1,0 +1,51 @@
+{
+  "contract_version": "proposal-b-machine-contract-v1",
+  "frozen_spec_sha256": "ce881075b84e36a28f673e1a41199e91cf0426baf66f788de880d86c156109b2",
+  "implementation_brief_sha256": "9363e892bef02d7b26856c31282bf8ca3902d1a140700e970d808057d6e77d1b",
+  "vocab_size": 16384,
+  "structural_ids": {"[PAD]": 0, "[UNK]": 1, "[CLS]": 2, "[SEP]": 3, "[MASK]": 4, "[QUERY]": 5, "[DOCUMENT]": 6},
+  "model": {
+    "vocab_size": 16384,
+    "blocks": 12,
+    "width": 512,
+    "q_heads": 8,
+    "kv_heads": 8,
+    "head_dim": 64,
+    "geglu_width": 1536,
+    "rope_theta": 10000.0,
+    "layer_norm_epsilon": 0.00001,
+    "dropout": 0.1,
+    "native_context": 1024
+  },
+  "parameter_counts": {
+    "embedding_table": 8388608,
+    "attention_per_block": 1048576,
+    "geglu_per_block": 2359296,
+    "layer_norms_per_block": 2048,
+    "complete_block": 3409920,
+    "twelve_blocks": 40919040,
+    "final_layer_norm": 1024,
+    "shared_backbone": 49308672,
+    "retrieval_head": 131072,
+    "decision_classifier": 1539,
+    "reranker": 513,
+    "retrieval_participating": 49439744,
+    "decision_participating": 49310211,
+    "reranking_participating": 49309185,
+    "fast_pipeline_unique": 49441283,
+    "reranked_pipeline_deployed_total": 49441796
+  },
+  "routing": {
+    "classes": ["CALL", "NO_CALL", "CLARIFY"],
+    "retrieval_top_k": 8,
+    "contrastive_temperature": 0.05,
+    "error_precedence": ["INVALID_INPUT", "INPUT_TOO_LONG", "INVALID_REGISTRY", "INDEX_MISMATCH", "NUMERICAL_ERROR"]
+  },
+  "tokenizer": {
+    "algorithm": "raw-utf8-byte-bpe",
+    "merge_count": 16121,
+    "ordinary_id_range": [7, 16383],
+    "no_normalization": true,
+    "no_regex_pretokenization": true
+  }
+}

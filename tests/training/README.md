@@ -1,0 +1,1 @@
+Training tests requiring the verified PyTorch runtime belong here. The current suite exercises deterministic masking, frozen downstream losses, and safe checkpoint paths; production-scale training remains data-gated.

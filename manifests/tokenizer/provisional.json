@@ -1,0 +1,20 @@
+{
+  "status": "PROVISIONAL_NOT_RELEASED",
+  "review_status": "AWAITING_SOL",
+  "algorithm": "raw-utf8-byte-bpe",
+  "implementation_version": "raw-byte-bpe-v1",
+  "merge_count": 16121,
+  "vocab_size": 16384,
+  "tokenizer_identity": "d7ecca67ab47140de8dffa18b396ce22fa03944c5b680f7077053b109eaefcf5",
+  "payload_sha256": "d7ecca67ab47140de8dffa18b396ce22fa03944c5b680f7077053b109eaefcf5",
+  "corpus_sha256": "a76a31fbf6147a1203779b4d983a736bf08075f75f1ee34440eb3fdac101d700",
+  "corpus_identity": "625a037fc7b1c3a11f67439fba8a90c8a864d5d8613fcdaba0c08b5b6dae9d51",
+  "source_sha": "dbf4bfbe407047ec0260ce9243a7022e70122722",
+  "independent_build_identities": [
+    "d7ecca67ab47140de8dffa18b396ce22fa03944c5b680f7077053b109eaefcf5",
+    "d7ecca67ab47140de8dffa18b396ce22fa03944c5b680f7077053b109eaefcf5"
+  ],
+  "conformance": "PASS",
+  "artifact_location": "local ignored artifact artifacts/tokenizer-final-g; independent validation artifacts/tokenizer-final-h",
+  "note": "Full local tokenizer evidence is recorded for reproducibility; independent review, quality qualification, and release remain pending."
+}

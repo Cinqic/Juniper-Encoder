@@ -1,0 +1,1 @@
+{"source_manifest":"manifests/sources/approved.json","processed_root":"data/processed","splits_manifest":"manifests/data/frozen.json","allowed_languages":["en","und"],"max_bytes_per_archive":1073741824,"max_extracted_bytes":5368709120,"dedupe":"exact-byte-v1","near_duplicate":"not-enabled-until-reviewed","rights_required":true}

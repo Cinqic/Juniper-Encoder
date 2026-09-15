@@ -1,0 +1,2 @@
+# Dependency-free bootstrap lock for contract-only installation.
+# Training dependencies are not listed without a verified wheel, index, and hash.
