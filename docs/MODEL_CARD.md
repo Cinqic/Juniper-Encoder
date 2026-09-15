@@ -1,6 +1,6 @@
 # Juniper Encoder model card
 
-**Status: NOT RELEASED.** A local prototype artifact chain exists, but no qualified deployment artifact is approved.
+**Status: RETIRED / NOT RELEASED / NOT PRODUCTION-QUALIFIED.** The project was retired on 2026-09-15 with no model released and no qualified deployment artifact approved. A local prototype artifact chain was produced during development; it was never promoted, qualified, or distributed. There is no supported production target and none will be provided. See [RETIRED.md](../RETIRED.md) for the canonical retirement record.
 
 The frozen architecture targets 49,441,796 deployed parameters and 49,308,672 shared-backbone parameters. Mode totals are retrieval 49,439,744, decision 49,310,211, reranking 49,309,185, and fast pipeline 49,441,283. These are contract counts, not evidence that weights exist.
 
